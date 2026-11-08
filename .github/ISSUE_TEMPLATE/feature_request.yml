@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest an idea or support for another agent
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to do?
+      description: The problem you want to solve, from your point of view
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Idea
+      description: How you imagine it could work (optional)
+  - type: input
+    id: agent
+    attributes:
+      label: Agent (if this is about a specific coding agent)
+      placeholder: "e.g. Gemini CLI"

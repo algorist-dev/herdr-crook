@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Help with the app or setup
+    url: https://crook.algorist.jp/support
+    about: Setup steps and answers to common questions
+  - name: Security problem
+    url: https://github.com/algorist-dev/herdr-crook/blob/main/SECURITY.md
+    about: Please report security problems privately by email

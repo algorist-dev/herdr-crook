@@ -1,0 +1,42 @@
+name: Bug report
+description: Something doesn't work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report! Please don't include IP addresses, host names, keys or pairing codes.
+        Security problems: email support@algorist.jp instead (see SECURITY.md).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Plugin, Herdr (`herdr --version`), Node.js (`node --version`), macOS, Crook app and iOS
+      placeholder: "plugin 1.0.0, herdr 0.9.5, node 25.1, macOS 27.0, Crook 1.0.0, iOS 27.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: route
+    attributes:
+      label: How does the app connect?
+      options: [Tailscale, Same Wi‑Fi, Relay server, Not sure]
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant lines from `~/.config/crook/relay.log` (remove IP addresses and host names)
+      render: text

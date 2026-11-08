@@ -1,10 +1,18 @@
 {
-  "name": "crook-plugin",
+  "name": "herdr-crook",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Herdr のエージェントを iPhone から見て操作するための中継（Tailscale 経由）",
-  "engines": { "node": ">=23.6" },
+  "description": "Herdr plugin for the Crook app: see your AI coding agents on iPhone and iPad and answer them with one tap",
+  "homepage": "https://crook.algorist.jp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/algorist-dev/herdr-crook.git"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=23.6"
+  },
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc -p .",
