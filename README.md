@@ -50,7 +50,14 @@ Works with Claude Code, Codex, OpenCode and GitHub Copilot CLI, plus any termina
 - macOS with [Herdr](https://herdr.dev) 0.9 or later
 - Node.js 23.6 or later (TypeScript runs directly, no build step)
 - The Crook app on iPhone or iPad with iOS 18 or later (App Store, coming soon)
-- Optional: [Tailscale](https://tailscale.com) on the Mac and the iPhone/iPad. Without it, Crook connects over the same Wi‑Fi at home and through the encrypted relay server when you're away
+
+> [!TIP]
+> **Recommended: [Tailscale](https://tailscale.com/download) (free for personal use)** on your Mac and your iPhone or iPad, signed in to the same account.
+> - Connects directly from anywhere — fast, even away from home
+> - No time or data limit
+> - Doesn't go through the relay server at all
+>
+> Without Tailscale, Crook connects over the same Wi‑Fi at home, and through the end‑to‑end encrypted relay server when you're away — up to 120 minutes and 200 MB per Mac per day. Enough to try Crook; if you use it away from home every day, use Tailscale. (Tailscale is a separate service, not affiliated with Crook.)
 
 ## How it works
 
@@ -144,9 +151,9 @@ More help: [crook.algorist.jp/support](https://crook.algorist.jp/support) · [op
 
 **Can Algorist see my code or conversations?** No. Data goes only between your Mac and your paired devices. Through the relay server it is end‑to‑end encrypted, so the relay cannot read it.
 
-**Do I need Tailscale?** No. Without Tailscale, Crook connects over the same Wi‑Fi, and through the end‑to‑end encrypted relay server when you're away (up to 120 minutes and 200 MB per Mac per day). With Tailscale, it connects directly from anywhere with no daily limit.
+**Do I need Tailscale?** It's not required, but we recommend it. With Tailscale (free for personal use), Crook connects directly from anywhere with no time or data limit. Without it, Crook uses the same Wi‑Fi at home and the end‑to‑end encrypted relay server when you're away, up to 120 minutes and 200 MB per Mac per day.
 
-**Can I use it away from home?** Yes — through Tailscale if you use it, otherwise through the relay server.
+**Can I use it away from home?** Yes. With Tailscale (recommended), directly and with no limit. Without it, through the relay server within the daily limit.
 
 **Does it work with Linux or Windows?** Not yet — the plugin uses launchd and is tested on macOS only.
 
