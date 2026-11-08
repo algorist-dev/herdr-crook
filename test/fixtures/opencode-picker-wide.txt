@@ -1,0 +1,40 @@
+
+  ┃                                                                                                                                                                          New session - 2026-11-06T22:13:43.
+  ┃  This Go model is hosted outside Europe and the United States. Select Global at https://opencode.ai/console/wrk_01KWCW58QJVYKM551C1BGZB696/settings/privacy#regions      817Z
+  ┃  to use it.
+  ┃                                                                                                                                                                          Context
+                                                                                                                                                                             14,607 tokens
+  ┃                                                                                                                                                                          1% used
+  ┃  say yes                                                                                                                                                                 $0.00 spent
+  ┃
+                                                                                                                                                                             LSP
+     yes                                                                                                                                                                     LSPs are disabled
+
+     ▣  Build · DeepSeek V4.1 Flash · 2.6s
+
+  ┃
+  ┃                                                                              Select model                                     esc
+  ┃
+                                                                                 Kimi K2.7 Code
+     + Thought: 1.8s
+                                                                                 Kimi K2.7 Code                           OpenCode Go
+                         (                            )                          Kimi K2.7 Code                              OpenCode
+
+     ▣  Build · DeepSeek V4.1 Flash · 4.1s                                       Connect provider ctrl+a  Favorite ctrl+f
+
+  ┃
+  ┃  askuserquestion
+  ┃
+
+     + Thought: 1.8s
+
+     → Asked 1 question
+
+  ┃
+  ┃  askuserqestion
+  ┃
+
+     + Thought: 285ms
+
+  ┃
+  ┃  # Questions

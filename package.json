@@ -1,0 +1,25 @@
+{
+  "name": "crook-plugin",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Herdr のエージェントを iPhone から見て操作するための中継（Tailscale 経由）",
+  "engines": { "node": ">=23.6" },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p .",
+    "serve": "node src/cli.ts serve",
+    "pair": "node src/cli.ts pair"
+  },
+  "dependencies": {
+    "qrcode": "1.5.4",
+    "ws": "8.18.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "@types/qrcode": "1.5.6",
+    "@types/ws": "8.18.1",
+    "typescript": "5.9.3",
+    "vitest": "5.0.4"
+  }
+}

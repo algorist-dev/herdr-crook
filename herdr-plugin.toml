@@ -1,0 +1,29 @@
+id = "algorist.crook"
+name = "Crook"
+version = "1.0.0"
+min_herdr_version = "0.9.0"
+description = "Watch and control your Herdr agents from iPhone and iPad with the Crook app. prefix+m shows a QR code to pair."
+platforms = ["macos"]
+
+[[build]]
+# Node 23.6 より古いと .ts をそのまま動かせず、起動フックが黙って落ちるので、入れるときに止める
+command = ["sh", "-c", "node -e 'const [a, b] = process.versions.node.split(\".\").map(Number); if (a < 23 || (a === 23 && b < 6)) { console.error(\"Crook needs Node.js 23.6 or later (found \" + process.versions.node + \")\"); process.exit(1) }' && npm ci --omit=dev"]
+
+# Herdr が起動したら、中継が動いているか確かめる（動いていなければ launchd で動かす）
+[[startup]]
+command = ["node", "src/cli.ts", "ensure"]
+
+# QR を出す画面
+[[panes]]
+id = "pair"
+title = "Pair with Crook"
+placement = "popup"
+width = 72
+height = 44
+command = ["node", "src/cli.ts", "pair"]
+
+[[actions]]
+id = "pair"
+title = "Pair iPhone or iPad (show QR code)"
+contexts = ["workspace"]
+command = ["sh", "-c", "exec \"$HERDR_BIN_PATH\" plugin pane open --plugin algorist.crook --entrypoint pair"]
