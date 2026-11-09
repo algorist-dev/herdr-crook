@@ -11,7 +11,7 @@
 [![herdr](https://img.shields.io/badge/herdr-0.9%2B-8a2be2?style=flat-square)](https://herdr.dev)
 [![Node.js](https://img.shields.io/badge/node-23.6%2B-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
 [![Platform](https://img.shields.io/badge/platform-macOS-000000?style=flat-square&logo=apple&logoColor=white)](#requirements)
-[![App Store](https://img.shields.io/badge/App_Store-coming_soon-0D96F6?style=flat-square&logo=apple&logoColor=white)](https://crook.algorist.jp)
+[![App Store](https://img.shields.io/badge/App_Store-download-0D96F6?style=flat-square&logo=apple&logoColor=white)](https://apps.apple.com/app/id6832110600)
 
 English | [日本語](README.ja.md)
 
@@ -19,7 +19,7 @@ English | [日本語](README.ja.md)
 
 > [!IMPORTANT]
 > This plugin is the Mac side of **Crook for Herdr**, an iPhone and iPad app. You need the app to use it.
-> The app is waiting for App Store review — **coming soon** on the App Store. See [crook.algorist.jp](https://crook.algorist.jp).
+> Get it on the [App Store](https://apps.apple.com/app/id6832110600). See [crook.algorist.jp](https://crook.algorist.jp) for more.
 
 <p align="center"><img src="docs/images/screens-en.jpg" alt="Crook on iPhone: the agent list with the waiting agent first, a terminal asking for permission with Yes buttons, and the chat view" width="820" /></p>
 
@@ -49,7 +49,7 @@ Works with Claude Code, Codex, OpenCode and GitHub Copilot CLI, plus any termina
 
 - macOS with [Herdr](https://herdr.dev) 0.9 or later
 - Node.js 23.6 or later (TypeScript runs directly, no build step)
-- The Crook app on iPhone or iPad with iOS 18 or later (App Store, coming soon)
+- The Crook app on iPhone or iPad with iOS 18 or later ([App Store](https://apps.apple.com/app/id6832110600))
 
 > [!TIP]
 > **Recommended: [Tailscale](https://tailscale.com/download) (free for personal use)** on your Mac and your iPhone or iPad, signed in to the same account.

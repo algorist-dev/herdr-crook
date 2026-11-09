@@ -11,7 +11,7 @@
 [![herdr](https://img.shields.io/badge/herdr-0.9%2B-8a2be2?style=flat-square)](https://herdr.dev)
 [![Node.js](https://img.shields.io/badge/node-23.6%2B-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
 [![Platform](https://img.shields.io/badge/platform-macOS-000000?style=flat-square&logo=apple&logoColor=white)](#要るもの)
-[![App Store](https://img.shields.io/badge/App_Store-近日公開-0D96F6?style=flat-square&logo=apple&logoColor=white)](https://crook.algorist.jp/ja)
+[![App Store](https://img.shields.io/badge/App_Store-ダウンロード-0D96F6?style=flat-square&logo=apple&logoColor=white)](https://apps.apple.com/app/id6832110600)
 
 [English](README.md) | 日本語
 
@@ -19,7 +19,7 @@
 
 > [!IMPORTANT]
 > このプラグインは、iPhone・iPad アプリ **Crook for Herdr** の Mac 側です。使うにはアプリが要ります。
-> アプリはいま App Store の審査待ちです（**近日公開**）。詳しくは [crook.algorist.jp](https://crook.algorist.jp/ja)。
+> アプリは [App Store](https://apps.apple.com/app/id6832110600) から入れられます。詳しくは [crook.algorist.jp](https://crook.algorist.jp/ja)。
 
 <p align="center"><img src="docs/images/screens-ja.jpg" alt="iPhone の Crook：返事待ちが一番上に並んだ一覧、Yes のボタンが出ているターミナル、会話の表示" width="820" /></p>
 
@@ -49,7 +49,7 @@ Claude Code・Codex・OpenCode・GitHub Copilot CLI と、Herdr のふつうの�
 
 - [Herdr](https://herdr.dev) 0.9 以上の Mac
 - Node.js 23.6 以上（TypeScript をそのまま動かします。ビルドは要りません）
-- iOS 18 以上の iPhone か iPad と、Crook のアプリ（App Store、近日公開）
+- iOS 18 以上の iPhone か iPad と、Crook のアプリ（[App Store](https://apps.apple.com/app/id6832110600)）
 
 > [!TIP]
 > **おすすめ：[Tailscale](https://tailscale.com/download)（個人は無料）**。Mac と iPhone・iPad の両方に入れ、同じアカウントでログインします。
