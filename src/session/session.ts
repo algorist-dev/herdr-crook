@@ -1,6 +1,7 @@
 // つながった 1 台の iPhone とのやりとり。transport が確かめたあとの welcome・一覧・
 // メッセージの振り分け・切れたときの後片付けを、部品（terminal・chat・dispatch）につなぐ。
 import { PROTOCOL_VERSION, type ServerMessage } from "../protocol/messages.ts";
+import { PLUGIN_VERSION } from "../protocol/version.ts";
 import { localizeServerMessage } from "../i18n/index.ts";
 import type { WatchState } from "../herdr/paneWatcher.ts";
 import type { AuthedLink } from "../transport/connection.ts";
@@ -56,6 +57,7 @@ export function createSession(services: RelayServices, link: AuthedLink): void {
   const state = deps.watcher.current();
   const agents = deps.agents();
   const theme = deps.herdrTheme?.();
+  const pushRoom = deps.pushRoom?.();
   ctx.send({
     t: "welcome",
     machine: deps.machine,
@@ -65,6 +67,8 @@ export function createSession(services: RelayServices, link: AuthedLink): void {
     push: deps.pushReady?.() ?? false,
     unattended: agents.filter((agent) => services.providers.unattendedArgs(agent) !== null),
     theme: theme?.theme,
+    ...(pushRoom ? { pushRoom } : {}),
+    plugin: PLUGIN_VERSION,
   });
   ctx.send({ t: "panes", panes: state.panes, herdr: state.herdr });
   deps.watcher.on("change", onChange);

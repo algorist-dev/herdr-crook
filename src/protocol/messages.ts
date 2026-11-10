@@ -61,14 +61,20 @@ export type ClientMessage =
   | { t: "usage"; pane: string }
   | { t: "unchat" }
   /** 通知の宛先（Apple のデバイストークン）。prefs：この端末の通知の設定（無ければ送らない） */
-  | { t: "push"; token: string | null; env: "sandbox" | "production"; prefs?: NotificationPrefs }
+  /**
+   * 通知の宛先。token が null なら通知を止める。sealed は中継サーバーにしか開けない封をした宛先
+   * （docs/architecture/relay-push.md）。無い・null なら中継サーバーからは送らない
+   */
+  | { t: "push"; token: string | null; env: "sandbox" | "production"; prefs?: NotificationPrefs; sealed?: string | null }
   /** 試しの APNs を送って確かめる（返事は pushTested） */
   | { t: "pushTest" }
   | { t: "ping" };
 
 export type ServerMessage =
   /** unattended：agents のうち、確認なしで立ち上げられるもの／theme：Mac の Herdr のテーマ設定 */
-  | { t: "welcome"; machine: string; protocol: number; herdr: boolean; agents: string[]; push: boolean; unattended: string[]; theme?: HerdrThemeConfig }
+  /** pushRoom：中継サーバーから裏の通知を送れるときの部屋の名前（iPhone は宛先の封にこれを入れる） */
+  /** plugin：この Mac のプラグインの版（1.1.0 から。無ければそれより古い。アプリが「更新して」と出すのに使う） */
+  | { t: "welcome"; machine: string; protocol: number; herdr: boolean; agents: string[]; push: boolean; unattended: string[]; theme?: HerdrThemeConfig; pushRoom?: string; plugin?: string }
   /** Mac の Herdr のテーマが変わった（つながっている間だけ届く） */
   | { t: "theme"; theme: HerdrThemeConfig }
   | { t: "paired"; token: string; machine: string }

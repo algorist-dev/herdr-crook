@@ -55,12 +55,37 @@ ${envXml}
 `;
 }
 
+/** この plist が、その cli.ts を動かす設定になっているか */
+export function plistRunsCli(plist: string, cli: string): boolean {
+  return plist.includes(`<string>${xml(cli)}</string>`);
+}
+
 export async function install(o: PlistOptions): Promise<void> {
   mkdirSync(o.home, { recursive: true, mode: 0o700 });
   mkdirSync(join(homedir(), "Library", "LaunchAgents"), { recursive: true });
   writeFileSync(plistPath(), buildPlist(o));
   await launchctl(["bootout", `gui/${userInfo().uid}/${LABEL}`]).catch(() => {});
-  await launchctl(["bootstrap", `gui/${userInfo().uid}`, plistPath()]);
+  await bootstrapWithRetry(() => launchctl(["bootstrap", `gui/${userInfo().uid}`, plistPath()]));
+}
+
+/**
+ * bootout は止め終わる前に返り、その間の bootstrap は「5: Input/output error」で失敗する。
+ * あきらめると中継が launchd から外れたままになるので、止め終わるまでやり直す（最長 15 秒）
+ */
+export async function bootstrapWithRetry(
+  run: () => Promise<unknown>,
+  wait: (ms: number) => Promise<void> = (ms) => new Promise((done) => setTimeout(done, ms)),
+): Promise<void> {
+  const tries = 30;
+  for (let i = 1; ; i++) {
+    try {
+      await run();
+      return;
+    } catch (e) {
+      if (i >= tries) throw e;
+      await wait(500);
+    }
+  }
 }
 
 export async function uninstall(): Promise<void> {

@@ -31,6 +31,27 @@ describe("parseTranscriptLines", () => {
     ]);
   });
 
+  it("会話を縮めたときの要約は、ユーザーの発言として出さない", () => {
+    const { items } = parseTranscriptLines([
+      line({ type: "user", uuid: "u1", message: { content: "前の話" } }),
+      line({ type: "user", uuid: "s1", isCompactSummary: true, isVisibleInTranscriptOnly: true, message: { content: "This session is being continued from a previous conversation" } }),
+      line({ type: "user", uuid: "u2", message: { content: "This session is being continued と貼り付けた文" } }),
+    ]);
+    expect(items.map((i) => i.id)).toEqual(["u1", "u2"]);
+  });
+
+  it("裏の作業の知らせ・コマンドの出力・中断の印は、ユーザーの発言として出さない", () => {
+    const notice = "<task-notification>\n<status>completed</status>\n</task-notification>";
+    const { items } = parseTranscriptLines([
+      line({ type: "user", uuid: "n1", origin: { kind: "task-notification" }, message: { content: notice } }),
+      line({ type: "user", uuid: "n2", message: { content: "<local-command-stdout>Compacted</local-command-stdout>" } }),
+      line({ type: "user", uuid: "n3", message: { content: "<bash-stdout>ok</bash-stdout><bash-stderr></bash-stderr>" } }),
+      line({ type: "user", uuid: "n4", message: { content: [{ type: "text", text: "[Request interrupted by user]" }] } }),
+      line({ type: "user", uuid: "u1", origin: { kind: "human" }, message: { content: notice } }),
+    ]);
+    expect(items.map((i) => i.id)).toEqual(["u1"]);
+  });
+
   it("題名は最後の ai-title", () => {
     expect(parseTranscriptLines(sample).title).toBe("認証を直してテスト");
   });

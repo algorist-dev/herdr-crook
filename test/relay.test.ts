@@ -229,12 +229,29 @@ describe("relay", () => {
   });
 
   it("確認なしで立ち上げられるのは、エージェントのうち引数があるものだけ", async () => {
-    deps.agents = () => ["claude", "opencode", "gemini"];
+    deps.agents = () => ["claude", "opencode", "amp"];
     const { messages } = await pairedClient();
     expect(messages.find((m) => m.t === "welcome")).toMatchObject({
-      agents: ["claude", "opencode", "gemini"],
+      agents: ["claude", "opencode", "amp"],
       unattended: ["claude", "opencode"],
     });
+  });
+
+  it("中継サーバーから送れるときは welcome で部屋を教え、封をした宛先をしまう", async () => {
+    deps.pushReady = () => true;
+    deps.pushRoom = () => "Rm0123456789abcdefghij";
+    const { ws, messages } = await pairedClient();
+    expect(messages.find((m) => m.t === "welcome")).toMatchObject({ push: true, pushRoom: "Rm0123456789abcdefghij" });
+    const token = "ab".repeat(32);
+    const sealed = "A".repeat(120);
+    ws.send(JSON.stringify({ t: "push", token, env: "production", sealed }));
+    await waitFor(() => store.pushTargets().length === 1);
+    expect(store.pushTargets()[0]).toMatchObject({ token, env: "production", sealed });
+  });
+
+  it("中継サーバーから送れないときは welcome に部屋を入れない", async () => {
+    const { messages } = await pairedClient();
+    expect(messages.find((m) => m.t === "welcome")).not.toHaveProperty("pushRoom");
   });
 
   it("通知の宛先を受け取ってしまい、つながっている間は「開いている端末」として数える", async () => {

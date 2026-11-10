@@ -63,6 +63,8 @@ export interface PushTarget {
   lang?: string;
   /** その端末の通知の設定（iPhone が push で送ってきたもの。無ければ既定） */
   prefs?: NotificationPrefs;
+  /** 中継サーバーにしか開けない封をした宛先（中継サーバーから送るとき） */
+  sealed?: string;
 }
 
 /** 宛先の言語で通知の文を作る（what＝会話の題名は訳さない） */

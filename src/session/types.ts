@@ -68,7 +68,8 @@ export interface SessionBase {
   deviceId: string;
   send(msg: ServerMessage): void;
   pane(paneId: string): PaneSummary | undefined;
-  kindOf(paneId: string): "agent" | "terminal" | null;
+  /** recognized は Herdr が見分けず、こちらで見分けたエージェント（agent.* の頼みごとは使えない） */
+  kindOf(paneId: string): "agent" | "recognized" | "terminal" | null;
   poke(): void;
   /** Mac に「スマホから操作中」を出す（接続ごと・ペインごとに 1 回） */
   announce(paneId: string, resized?: boolean): void;

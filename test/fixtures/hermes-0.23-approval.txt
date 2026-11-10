@@ -1,0 +1,22 @@
+❯ Read note.txt, then run `rm -rf ./scratch-dir` in the terminal. Reply in one short line.
+────────────────────────────────────────
+
+📖 Read note.txt  0.1s
+╭────────────────────────────────────────────────╮
+│ ⚠️  Dangerous Command                          │
+│                                                │
+│ rm -rf ./scratch-dir                           │
+│                                                │
+│ ❯ 1. Allow once                                │
+│   2. Allow for this session                    │
+│   3. Add to permanent allowlist                │
+│   4. Deny                                      │
+│                                                │
+│ recursive delete                               │
+╰────────────────────────────────────────────────╯
+
+  ↑/↓ to select, Enter to confirm  (282s)
+── ⠏ 💻 rm -rf ./scratch-dir · 28s · ↓ 96 tok ────────────────────────────────── Read note.txt and delete scratch-dir ─
+⚠ ❯
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☤ claude-haiku-4-5 · 13.7K/200K · [█░░░░░░░░░] 7% · ◷ 1.5s · ↑ 64 t/s · 49s · ⏱ 27s · …scratchpad/agents/hermesproj

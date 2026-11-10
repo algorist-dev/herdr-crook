@@ -43,6 +43,7 @@ export const fr: TranslationTable = {
     "そのモデルは Mac の Codex にありません": "Ce modèle n’est pas dans Codex sur le Mac",
     "そのモデルは Mac の OpenCode に入っていません": "Ce modèle n’est pas dans OpenCode sur le Mac",
     "このモデルではそのエフォートを選べません": "Ce modèle ne prend pas en charge cet effort",
+    "このエージェントがメッセージを打てる画面になっていません。Mac の画面を見てください": "Cet agent n’est pas prêt à recevoir un message. Vérifiez le Mac",
     "Claude がメッセージを打てる画面になっていません。Mac の画面を見てください": "Claude n’est pas prêt pour un message. Regardez le Mac",
     "Codex がメッセージを打てる画面になっていません。Mac の画面を見てください": "Codex n’est pas prêt pour un message. Regardez le Mac",
     "OpenCode がメッセージを打てる画面になっていません。Mac の画面を見てください": "OpenCode n’est pas prêt pour un message. Regardez le Mac",

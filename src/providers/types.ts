@@ -119,9 +119,29 @@ export interface ChatSource {
   toolDetail?(chatKey: string, itemId: string): ToolDetail | null;
 }
 
+/** ペインの前で動いているプロセス（Herdr の pane.process_info の foreground_processes の 1 件） */
+export interface ForegroundProcess {
+  name: string | null;
+  argv: string[];
+}
+
+/**
+ * Herdr がエージェントと見分けないときに、こちらで見分ける手がかり。
+ * 連携がそのペインに会話を報告していて（agent_session.source）、しかもいま前で動いているプロセスがそのエージェントのときだけ
+ * エージェントのペインとして扱う（報告は終わったあとも残るので、報告だけでは決めない）。状態は分からない（unknown）
+ */
+export interface AgentRecognizer {
+  sessionSource: string;
+  isRunning(processes: ForegroundProcess[]): boolean;
+  /** 画面（見えている範囲）から分かる状態。承認の画面が出ていれば "blocked"、分からなければ null */
+  statusFromScreen?(screen: string): "blocked" | null;
+}
+
 export interface AgentProvider {
   /** Herdr のエージェントの種類と同じ名前（"claude"・"codex"・"opencode"・"copilot"） */
   readonly id: string;
+  /** Herdr が見分けないエージェントを、連携の報告と前のプロセスで見分ける（Herdr が見分けるものは書かない） */
+  readonly recognize?: AgentRecognizer;
   /** 「確認なし」で立ち上げるときにエージェントに付ける引数。できないエージェントは書かない */
   readonly unattendedArgs?: readonly string[];
   /** 一覧の PaneSummary.chatId。会話を読めないなら null */

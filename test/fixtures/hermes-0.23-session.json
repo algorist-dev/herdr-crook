@@ -1,0 +1,1 @@
+[{"id":"local-9a167f8f2013226d0070c0def17d3bc9ed11f1def19ef8f9a8cae4c85dffa644","source":"local","model":"claude-haiku-4-5","title":"Read note.txt and delete scratch-dir","cwd":"/repo/demo","started_at":1794122409.299396,"message_count":5,"input_tokens":10,"output_tokens":111,"cache_read_tokens":13678,"cache_write_tokens":13916,"estimated_cost_usd":0.0193278}]

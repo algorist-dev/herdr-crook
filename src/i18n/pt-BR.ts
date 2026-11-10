@@ -43,6 +43,7 @@ export const ptBR: TranslationTable = {
     "そのモデルは Mac の Codex にありません": "Esse modelo não está no Codex do Mac",
     "そのモデルは Mac の OpenCode に入っていません": "Esse modelo não está no OpenCode do Mac",
     "このモデルではそのエフォートを選べません": "Este modelo não aceita esse esforço",
+    "このエージェントがメッセージを打てる画面になっていません。Mac の画面を見てください": "Este agente não está pronto para uma mensagem. Confira o Mac",
     "Claude がメッセージを打てる画面になっていません。Mac の画面を見てください": "O Claude não está pronto para uma mensagem. Confira o Mac",
     "Codex がメッセージを打てる画面になっていません。Mac の画面を見てください": "O Codex não está pronto para uma mensagem. Confira o Mac",
     "OpenCode がメッセージを打てる画面になっていません。Mac の画面を見てください": "O OpenCode não está pronto para uma mensagem. Confira o Mac",

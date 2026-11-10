@@ -1,6 +1,7 @@
 // Herdr のペインとエージェントの一覧を見張り、変わったら "change" を出す。
 // イベントは「読み直しのきっかけ」にだけ使い、中身はいつも session.snapshot から作る
 // （Herdr のドキュメントがすすめるやり方。取りこぼしがあっても一覧はずれない）。
+import { addRecognizedAgents } from "./recognize.ts";
 import { EventEmitter } from "node:events";
 import { summarize, type PaneSummary } from "./agents.ts";
 import type { HerdrClient, HerdrEvent } from "./herdrClient.ts";
@@ -89,8 +90,10 @@ export class PaneWatcher extends EventEmitter {
   }
 
   /** ペインがエージェントかどうか（文章の送り方を変えるため） */
-  kindOf(paneId: string): "agent" | "terminal" | null {
-    return this.state.panes.find((p) => p.paneId === paneId)?.kind ?? null;
+  kindOf(paneId: string): "agent" | "recognized" | "terminal" | null {
+    const kind = this.state.panes.find((p) => p.paneId === paneId)?.kind ?? null;
+    // Herdr が見分けていないエージェントには agent.prompt などが届かない（ターミナルと同じ送り方にする）
+    return kind === "agent" && this.recognizedPanes.has(paneId) ? "recognized" : kind;
   }
 
   /** すぐ読み直す（スマホから操作したあとなど） */
@@ -104,6 +107,11 @@ export class PaneWatcher extends EventEmitter {
     this.unattended.add(paneId);
     this.poke();
   }
+
+  /** こちらで見分けたペインの、プロセスを聞いた結果 */
+  private readonly recognized = new Map<string, { key: string; at: number; running: boolean }>();
+  /** いまの一覧で、こちらで見分けて足したペイン */
+  private recognizedPanes = new Set<string>();
 
   private refresh(): Promise<void> {
     if (this.refreshing) {
@@ -126,6 +134,22 @@ export class PaneWatcher extends EventEmitter {
     try {
       const result = (await this.client.request("session.snapshot", {})) as { snapshot?: object };
       const now = (this.opts.now ?? Date.now)();
+      // Herdr が見分けないエージェント（連携の報告＋前のプロセス）を足す
+      const snapshot = await addRecognizedAgents(
+        result.snapshot ?? {},
+        this.providers,
+        (method, params) => this.client.request(method, params),
+        this.recognized,
+        now,
+      );
+      const herdrAgents = new Set(
+        ((result.snapshot as { agents?: { pane_id?: unknown }[] } | undefined)?.agents ?? []).map((a) => a?.pane_id),
+      );
+      this.recognizedPanes = new Set(
+        ((snapshot as { agents?: { pane_id?: unknown }[] }).agents ?? [])
+          .map((a) => a?.pane_id)
+          .filter((id): id is string => typeof id === "string" && !herdrAgents.has(id)),
+      );
       // まず状態だけ読んで時刻を更新し、その時刻を入れて作り直す
       const chatKeyOf = (record: Parameters<ProviderRegistry["chatKey"]>[0], cwd: string | null) =>
         this.providers.chatKey(record, cwd);
@@ -134,7 +158,7 @@ export class PaneWatcher extends EventEmitter {
         models: this.providers.get(agent)?.models !== undefined,
       });
       const seen = new Set<string>();
-      for (const pane of summarize(result.snapshot ?? {}, undefined, undefined, chatKeyOf, capsOf)) {
+      for (const pane of summarize(snapshot, undefined, undefined, chatKeyOf, capsOf)) {
         seen.add(pane.paneId);
         const prev = this.statusSince.get(pane.paneId);
         if (!prev || prev.status !== pane.status) this.statusSince.set(pane.paneId, { status: pane.status, since: now });
@@ -143,7 +167,7 @@ export class PaneWatcher extends EventEmitter {
       next = {
         herdr: true,
         panes: summarize(
-          result.snapshot ?? {},
+          snapshot,
           (id) => this.statusSince.get(id)?.since ?? null,
           (chatId, agent) => this.chatTitle(chatId, agent),
           chatKeyOf,

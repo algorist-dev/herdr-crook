@@ -11,7 +11,11 @@ type Rec = Record<string, unknown>;
 /** Codex への決まった指示（環境の説明など）。会話には出さない */
 function isNoise(text: string): boolean {
   const t = text.trimStart();
-  return /^<(environment_context|user_instructions|skills_instructions|permissions|collaboration_mode|turn_aborted|skill)\b/.test(t);
+  return (
+    /^<(environment_context|user_instructions|skills_instructions|permissions|collaboration_mode|turn_aborted|skill|user_shell_command|subagent_notification)\b/.test(t) ||
+    t.startsWith("# AGENTS.md instructions") ||
+    t.startsWith("Another language model started to solve this problem") // 会話を縮めたときの要約
+  );
 }
 
 function textOf(content: unknown, kind: "input_text" | "output_text"): string {

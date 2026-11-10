@@ -3,7 +3,10 @@
 import { createClaudeProvider, type ClaudeProviderOptions } from "./claude/index.ts";
 import { createCodexProvider, type CodexProviderOptions } from "./codex/index.ts";
 import { createCopilotProvider, type CopilotProviderOptions } from "./copilot/index.ts";
+import { createGeminiProvider, type GeminiProviderOptions } from "./gemini/index.ts";
+import { createHermesProvider, type HermesProviderOptions } from "./hermes/index.ts";
 import { createOpenCodeProvider, type OpenCodeProviderOptions } from "./opencode/index.ts";
+import { createPiProvider, type PiProviderOptions } from "./pi/index.ts";
 import { ProviderRegistry } from "./registry.ts";
 
 export interface DefaultProviderOptions {
@@ -11,6 +14,9 @@ export interface DefaultProviderOptions {
   codex?: CodexProviderOptions;
   opencode?: OpenCodeProviderOptions;
   copilot?: CopilotProviderOptions;
+  pi?: PiProviderOptions;
+  gemini?: GeminiProviderOptions;
+  hermes?: HermesProviderOptions;
 }
 
 export function createDefaultProviders(opts: DefaultProviderOptions = {}): ProviderRegistry {
@@ -19,6 +25,9 @@ export function createDefaultProviders(opts: DefaultProviderOptions = {}): Provi
     createCodexProvider(opts.codex),
     createOpenCodeProvider(opts.opencode),
     createCopilotProvider(opts.copilot),
+    createPiProvider(opts.pi),
+    createGeminiProvider(opts.gemini),
+    createHermesProvider(opts.hermes),
   ]);
 }
 

@@ -59,7 +59,10 @@ describe("ProviderRegistry", () => {
     expect(registry.unattendedArgs("codex")).toEqual(["--dangerously-bypass-approvals-and-sandbox"]);
     expect(registry.unattendedArgs("opencode")).toEqual(["--auto"]);
     expect(registry.unattendedArgs("copilot")).toEqual(["--allow-all"]);
-    expect(registry.unattendedArgs("gemini")).toBeNull();
+    expect(registry.unattendedArgs("gemini")).toEqual(["--yolo"]);
+    // Pi はもともと承認を求めないので引数なし（iPhone に切り替えを出さない）
+    expect(registry.unattendedArgs("pi")).toBeNull();
+    expect(registry.unattendedArgs("amp")).toBeNull();
     expect(registry.unattendedArgs(null)).toBeNull();
     expect(registry.unattendedArgs(undefined)).toBeNull();
   });

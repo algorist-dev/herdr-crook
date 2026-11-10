@@ -7,6 +7,21 @@ import { findCodexRollout, isCodexRollout, parseCodexLines } from "../src/provid
 const row = (payload: object) => JSON.stringify({ type: "response_item", payload });
 
 describe("Codex の会話の記録", () => {
+  it("Codex が自分で入れた行（AGENTS.md・シェルの結果・サブエージェントの知らせ・要約）は発言にしない", () => {
+    const user = (text: string) => row({ type: "message", role: "user", content: [{ type: "input_text", text }] });
+    const { items } = parseCodexLines(
+      [
+        user("# AGENTS.md instructions for /tmp\n\n<INSTRUCTIONS>\n決まり\n</INSTRUCTIONS>"),
+        user("<user_shell_command>\nls\n</user_shell_command>"),
+        user("<subagent_notification>{}</subagent_notification>"),
+        user("Another language model started to solve this problem and produced a summary"),
+        user("本当の発言"),
+      ],
+      0,
+    );
+    expect(items.map((i) => i.text)).toEqual(["本当の発言"]);
+  });
+
   it("発言と返事とツールを読み、決まった指示は外す", () => {
     const lines = [
       JSON.stringify({ type: "session_meta", payload: { cwd: "/tmp" } }),

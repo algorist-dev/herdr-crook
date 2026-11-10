@@ -42,6 +42,17 @@ describe("parseClientMessage", () => {
     expect(parseClientMessage(JSON.stringify({ t: "push", token, env: "sandbox", prefs: { mutedWorkspaces: ["bad id"] } }))).toEqual({ t: "push", token, env: "sandbox" });
     expect(parseClientMessage(JSON.stringify({ t: "push", token, env: "sandbox", prefs: { enabled: false } }))).toMatchObject({ t: "push", token, prefs: { enabled: false } });
   });
+
+  it("中継サーバー用の封をした宛先。おかしな封は封だけ無いことにする", () => {
+    const token = "ab".repeat(32);
+    const sealed = "A".repeat(120);
+    expect(parseClientMessage(JSON.stringify({ t: "push", token, env: "production", sealed }))).toEqual({ t: "push", token, env: "production", sealed });
+    expect(parseClientMessage(JSON.stringify({ t: "push", token, env: "production", sealed: null }))).toEqual({ t: "push", token, env: "production", sealed: null });
+    expect(parseClientMessage(JSON.stringify({ t: "push", token, env: "production", sealed: "a/b" }))).toEqual({ t: "push", token, env: "production" });
+    expect(parseClientMessage(JSON.stringify({ t: "push", token, env: "production", sealed: "A".repeat(2000) }))).toEqual({ t: "push", token, env: "production" });
+    // 通知を止めるときは封も要らない
+    expect(parseClientMessage(JSON.stringify({ t: "push", token: null, env: "production", sealed }))).toEqual({ t: "push", token: null, env: "production" });
+  });
   it("合言葉でのペアリング", () => {
     expect(parseClientMessage('{"t":"pair","code":"abc","device":"iPhone"}')).toEqual({ t: "pair", code: "abc", device: "iPhone" });
   });

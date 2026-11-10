@@ -141,6 +141,22 @@ describe("PairingStore の通知の宛先", () => {
   });
 });
 
+describe("PairingStore の封をした宛先（中継サーバーから送る）", () => {
+  it("封を宛先と一緒にしまい、null・付けないで送られたら外す", () => {
+    const dir = mkdtempSync(join(tmpdir(), "hm-pair-"));
+    const store = new PairingStore(join(dir, "devices.json"));
+    const one = store.redeem(store.createPairingCode(), "iPhone");
+    if (!one.ok) throw new Error("redeem failed");
+    store.setPush(one.deviceId, "aa11", "production", undefined, "SEALED");
+    expect(store.pushTargets()).toEqual([{ deviceId: one.deviceId, token: "aa11", env: "production", sealed: "SEALED" }]);
+    store.setPush(one.deviceId, "aa11", "production", undefined, null);
+    expect(store.pushTargets()).toEqual([{ deviceId: one.deviceId, token: "aa11", env: "production" }]);
+    store.setPush(one.deviceId, "aa11", "production", undefined, "SEALED2");
+    store.setPush(one.deviceId, "aa11", "production");
+    expect(store.pushTargets()[0]?.sealed).toBeUndefined();
+  });
+});
+
 describe("PairingStore の通知の宛先（つなぎ直し）", () => {
   it("同じ宛先を別の登録に入れたら、前の登録からは外す（2 回鳴らない）", () => {
     const dir = mkdtempSync(join(tmpdir(), "hm-pair-"));

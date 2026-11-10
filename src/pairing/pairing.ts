@@ -15,7 +15,7 @@ export interface Device {
   createdAt: number;
   lastSeenAt: number;
   /** 通知の宛先（Apple のデバイストークン）と、その端末の通知の設定。アプリが送ってきたときだけ */
-  push?: { token: string; env: "sandbox" | "production"; prefs?: NotificationPrefs };
+  push?: { token: string; env: "sandbox" | "production"; prefs?: NotificationPrefs; sealed?: string };
   /** アプリの言語（BCP 47）。hello・lang で送られてきたときだけ。無ければ日本語 */
   lang?: string;
 }
@@ -101,8 +101,11 @@ export class PairingStore {
     return pending !== null && pending.expiresAt >= this.now();
   }
 
-  /** 端末の通知の宛先と設定をしまう（null の token なら止める。prefs や env が同じなら書かない） */
-  setPush(deviceId: string, token: string | null, env: "sandbox" | "production", prefs?: NotificationPrefs): void {
+  /**
+   * 端末の通知の宛先と設定をしまう（null の token なら止める。何も変わらなければ書かない）。
+   * sealed は中継サーバーにしか開けない封をした宛先（無ければ中継サーバーからは送らない）
+   */
+  setPush(deviceId: string, token: string | null, env: "sandbox" | "production", prefs?: NotificationPrefs, sealed?: string | null): void {
     const data = this.load();
     const device = data.devices.find((d) => d.id === deviceId);
     if (!device) return;
@@ -113,10 +116,11 @@ export class PairingStore {
       const samePrefs =
         (prefs === undefined && device.push?.prefs === undefined) ||
         (prefs !== undefined && device.push?.prefs !== undefined && JSON.stringify(device.push.prefs) === JSON.stringify(prefs));
-      if (device.push?.token === token && device.push.env === env && samePrefs) return;
+      const seal = sealed ?? undefined;
+      if (device.push?.token === token && device.push.env === env && samePrefs && device.push.sealed === seal) return;
       // 同じ iPhone をつなぎ直したとき、前の登録にも同じ宛先が残っていると 2 回鳴るので外す
       for (const other of data.devices) if (other !== device && other.push?.token === token) delete other.push;
-      device.push = { token, env, ...(prefs ? { prefs } : {}) };
+      device.push = { token, env, ...(prefs ? { prefs } : {}), ...(seal ? { sealed: seal } : {}) };
     }
     this.save(data);
   }
@@ -143,9 +147,20 @@ export class PairingStore {
     if (changed) this.save(data);
   }
 
-  pushTargets(): { deviceId: string; token: string; env: "sandbox" | "production"; lang?: string; prefs?: NotificationPrefs }[] {
+  pushTargets(): { deviceId: string; token: string; env: "sandbox" | "production"; lang?: string; prefs?: NotificationPrefs; sealed?: string }[] {
     return this.load().devices.flatMap((d) =>
-      d.push ? [{ deviceId: d.id, token: d.push.token, env: d.push.env, ...(d.lang ? { lang: d.lang } : {}), ...(d.push.prefs ? { prefs: d.push.prefs } : {}) }] : [],
+      d.push
+        ? [
+            {
+              deviceId: d.id,
+              token: d.push.token,
+              env: d.push.env,
+              ...(d.lang ? { lang: d.lang } : {}),
+              ...(d.push.prefs ? { prefs: d.push.prefs } : {}),
+              ...(d.push.sealed ? { sealed: d.push.sealed } : {}),
+            },
+          ]
+        : [],
     );
   }
 

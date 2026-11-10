@@ -21,6 +21,8 @@ export interface Transcript {
 /** 1 回の読み取りの結果。usage は「今回読んだ分」で、TranscriptReader が足していく */
 export interface ParsedTranscript extends Transcript {
   usage?: ParsedUsage;
+  /** 出したものの一部が消えた（Gemini の巻き戻し）。最初から読み直す */
+  restart?: boolean;
 }
 
 /** 会話記録を前回の続きから読む。最初は全部、そのあとは増えた分だけ。 */
@@ -32,6 +34,8 @@ export class TranscriptReader {
   private usageState: TranscriptUsage | null = null;
   /** 読んだ行の数（Codex の ID に使う） */
   private lineCount = 0;
+  /** 読み方が「最初から読み直して」と言った */
+  private restartWanted = false;
   readonly path: string;
   private readonly parse: (lines: string[], base: number) => ParsedTranscript;
 
@@ -39,6 +43,11 @@ export class TranscriptReader {
   constructor(path: string, parse: (lines: string[], base: number) => ParsedTranscript = (lines) => parseTranscriptLines(lines)) {
     this.path = path;
     this.parse = parse;
+  }
+
+  /** 最初から読み直すべきか（jsonlChatStream が見て、読み直して reset で送る） */
+  get needsRestart(): boolean {
+    return this.restartWanted;
   }
 
   /** いままでに読んだ使用量（まだ無ければ null） */
@@ -68,6 +77,7 @@ export class TranscriptReader {
       const kept = lines.filter((l) => l.trim());
       const parsed = this.parse(kept, this.lineCount);
       this.lineCount += kept.length;
+      if (parsed.restart) this.restartWanted = true;
       if (parsed.title) this.title = parsed.title;
       if (parsed.usage) this.usageState = mergeUsage(this.usageState, parsed.usage);
       return { title: this.title, items: parsed.items };

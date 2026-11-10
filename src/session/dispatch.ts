@@ -31,7 +31,7 @@ export function setLang(ctx: SessionContext, lang: string): void {
 const lang: Handler<"lang"> = (ctx, msg) => setLang(ctx, msg.lang);
 
 const push: Handler<"push"> = (ctx, msg) => {
-  ctx.services.deps.store.setPush?.(ctx.deviceId, msg.token, msg.env, msg.prefs);
+  ctx.services.deps.store.setPush?.(ctx.deviceId, msg.token, msg.env, msg.prefs, msg.sealed);
 };
 
 const pushTest: Handler<"pushTest"> = async (ctx) => {

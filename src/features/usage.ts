@@ -18,7 +18,7 @@ export interface UsageLimit {
   windowMinutes: number | null;
 }
 
-export type UsageSource = "claude" | "claude-statusline" | "codex" | "opencode" | "copilot";
+export type UsageSource = "claude" | "claude-statusline" | "codex" | "opencode" | "copilot" | "pi" | "gemini" | "hermes";
 
 /** 会話の記録から読んだ使用量（ペインにはまだ結びつけていない） */
 export interface TranscriptUsage {
@@ -48,6 +48,8 @@ export interface ParsedUsage {
   /** いまの累計（Codex のように、もともと累計が入っているもの） */
   tokensTotal?: UsageTokens;
   cost?: number;
+  /** 前の読み取りに足す費用（Pi のように、返事ごとに費用が書いてあるもの） */
+  costDelta?: number;
   limits?: UsageLimit[];
 }
 
@@ -112,7 +114,7 @@ export function mergeUsage(state: TranscriptUsage | null, parsed: ParsedUsage): 
     contextLimit,
     contextPercent: contextPercent(contextUsed, contextLimit),
     tokens,
-    cost: parsed.cost ?? state?.cost ?? null,
+    cost: parsed.cost ?? (parsed.costDelta !== undefined ? (state?.cost ?? 0) + parsed.costDelta : state?.cost ?? null),
     limits: parsed.limits ?? state?.limits ?? [],
     source: parsed.source,
   };

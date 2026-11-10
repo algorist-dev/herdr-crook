@@ -45,10 +45,10 @@ afterEach(async () => {
 });
 
 describe("createDefaultProviders", () => {
-  it("4 つのエージェントを、いまの名前で入れる", () => {
+  it("7 つのエージェントを、いまの名前で入れる", () => {
     const registry = createDefaultProviders();
 
-    expect(registry.all().map((p) => p.id)).toEqual(["claude", "codex", "opencode", "copilot"]);
+    expect(registry.all().map((p) => p.id)).toEqual(["claude", "codex", "opencode", "copilot", "pi", "gemini", "hermes"]);
   });
 
   it("渡したオプションを、そのエージェントのプロバイダに使わせる", async () => {
@@ -61,7 +61,7 @@ describe("createDefaultProviders", () => {
 
   it("何も渡さないときのものは 1 つだけ（はじめて呼ばれたときに作る）", () => {
     expect(defaultProviders()).toBe(defaultProviders());
-    expect(defaultProviders().all().map((p) => p.id)).toEqual(["claude", "codex", "opencode", "copilot"]);
+    expect(defaultProviders().all().map((p) => p.id)).toEqual(["claude", "codex", "opencode", "copilot", "pi", "gemini", "hermes"]);
   });
 
   it("既定のプロバイダが「/」のコマンドを持つ（slashCommands から呼べる）", () => {
@@ -95,7 +95,7 @@ describe("エージェントの分岐を共有ファイルから外したあと�
         agents: [
           {
             pane_id: "w1:p1",
-            agent: "gemini",
+            agent: "amp",
             agent_status: "idle",
             agent_session: { source: "herdr:claude", value: "sess-1" },
           },
@@ -111,7 +111,7 @@ describe("エージェントの分岐を共有ファイルから外したあと�
 
     expect(list[0]?.chatId).toBe("custom:/repo/app");
     expect(seen[0]).toEqual({
-      record: { agent: "gemini", sessionSource: "herdr:claude", sessionValue: "sess-1" },
+      record: { agent: "amp", sessionSource: "herdr:claude", sessionValue: "sess-1" },
       cwd: "/repo/app",
     });
   });
@@ -124,7 +124,7 @@ describe("エージェントの分岐を共有ファイルから外したあと�
         agents: [
           {
             pane_id: "w1:p1",
-            agent: "gemini",
+            agent: "amp",
             agent_status: "idle",
             agent_session: { source: "herdr:claude", value: "sess-1" },
           },
@@ -137,7 +137,7 @@ describe("エージェントの分岐を共有ファイルから外したあと�
       },
     );
 
-    expect(got).toEqual(["sess-1", "gemini"]);
+    expect(got).toEqual(["sess-1", "amp"]);
   });
 
   it("PaneWatcher は題名を providers.title に聞く", async () => {

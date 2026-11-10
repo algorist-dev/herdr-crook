@@ -28,6 +28,30 @@ describe("actions：文章を送る", () => {
     expect(f.pokes).toBe(2);
   });
 
+  it("Herdr が見分けていないエージェント（Hermes など）には、文字と Enter で送る（agent.prompt は届かない）", async () => {
+    const f = fakeSession({ panes: [paneFixture({ paneId: "w1R:p1", agent: "hermes" })], recognized: ["w1R:p1"] });
+    await actionHandlers.prompt!(f.ctx, { t: "prompt", pane: "w1R:p1", text: "rm -rf ./scratch" });
+    expect(f.herdrCalls).toEqual([
+      { method: "pane.send_text", params: { pane_id: "w1R:p1", text: "rm -rf ./scratch" } },
+      { method: "pane.send_keys", params: { pane_id: "w1R:p1", keys: ["enter"] } },
+    ]);
+  });
+
+  it("Herdr が見分けていないエージェントへの複数行は、貼り付けの形で入れてから Enter（途中で送られないように）", async () => {
+    const f = fakeSession({ panes: [paneFixture({ paneId: "w1R:p1", agent: "hermes" })], recognized: ["w1R:p1"] });
+    await actionHandlers.prompt!(f.ctx, { t: "prompt", pane: "w1R:p1", text: "1 行目\n2 行目" });
+    expect(f.herdrCalls).toEqual([
+      { method: "pane.send_text", params: { pane_id: "w1R:p1", text: "\x1b[200~1 行目\n2 行目\x1b[201~" } },
+      { method: "pane.send_keys", params: { pane_id: "w1R:p1", keys: ["enter"] } },
+    ]);
+  });
+
+  it("名前を変えるときも、Herdr が見分けていないエージェントは pane.rename", async () => {
+    const f = fakeSession({ panes: [paneFixture({ paneId: "w1R:p1", agent: "hermes" })], recognized: ["w1R:p1"] });
+    await actionHandlers.paneAction!(f.ctx, { t: "paneAction", pane: "w1R:p1", action: "rename", label: "h" });
+    expect(f.herdrCalls).toEqual([{ method: "pane.rename", params: { pane_id: "w1R:p1", label: "h" } }]);
+  });
+
   it("文章の前後の空白は落とす", async () => {
     const f = fakeSession();
     await actionHandlers.prompt!(f.ctx, { t: "prompt", pane: "w1:p1", text: "  直して\n" });
@@ -154,7 +178,7 @@ describe("actions：新しいワークスペース", () => {
 
   it("確認なしに対応していないエージェントなら、ワークスペースを作る前に断る", async () => {
     const f = fakeSession({ providers: createDefaultProviders().all() });
-    await actionHandlers.create!(f.ctx, { t: "create", req: "r9", cwd: "/tmp", label: null, agent: "gemini", unattended: true });
+    await actionHandlers.create!(f.ctx, { t: "create", req: "r9", cwd: "/tmp", label: null, agent: "amp", unattended: true });
     expect(f.sent).toEqual([{ t: "error", req: "r9", message: "このエージェントは YOLO モードで起動できません" }]);
     expect(f.herdrCalls).toEqual([]);
   });
@@ -250,7 +274,7 @@ describe("actions：新しいタブ", () => {
 
   it("確認なしに対応していないエージェントなら、タブを作る前に断る", async () => {
     const f = fakeSession({ providers: createDefaultProviders().all() });
-    await actionHandlers.newTab!(f.ctx, { t: "newTab", req: "t5", workspace: "w1", agent: "gemini", unattended: true });
+    await actionHandlers.newTab!(f.ctx, { t: "newTab", req: "t5", workspace: "w1", agent: "amp", unattended: true });
     expect(f.sent).toEqual([{ t: "error", req: "t5", message: "このエージェントは YOLO モードで起動できません" }]);
     expect(f.herdrCalls).toEqual([]);
   });

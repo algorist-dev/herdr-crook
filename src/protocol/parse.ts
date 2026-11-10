@@ -109,11 +109,16 @@ export const CLIENT_PARSERS: { [T in ClientMessage["t"]]: Parser } = {
     if (m.env !== "sandbox" && m.env !== "production") return null;
     // prefs は乗っていれば中身を確かめる。合わなければ設定だけ無いことにし、宛先は受ける（通知が止まらないように）
     const prefs = parseNotificationPrefs(m.prefs);
-    if (m.token === null) {
-      return prefs ? { t: "push", token: null, env: m.env, prefs } : { t: "push", token: null, env: m.env };
-    }
-    if (typeof m.token !== "string" || !/^[0-9a-f]{32,200}$/.test(m.token)) return null;
-    return prefs ? { t: "push", token: m.token, env: m.env, prefs } : { t: "push", token: m.token, env: m.env };
+    if (m.token !== null && (typeof m.token !== "string" || !/^[0-9a-f]{32,200}$/.test(m.token))) return null;
+    // 封は base64url で 1024 文字まで。おかしなものは封だけ無いことにする
+    const sealed = typeof m.sealed === "string" && /^[A-Za-z0-9_-]{60,1024}$/.test(m.sealed) ? m.sealed : m.sealed === null ? null : undefined;
+    return {
+      t: "push",
+      token: m.token,
+      env: m.env,
+      ...(prefs ? { prefs } : {}),
+      ...(m.token !== null && sealed !== undefined ? { sealed } : {}),
+    };
   },
   pushTest: () => ({ t: "pushTest" }),
   ping: () => ({ t: "ping" }),

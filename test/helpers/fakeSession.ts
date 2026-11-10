@@ -28,6 +28,8 @@ export interface FakeSessionOptions {
   /** Herdr への頼みごとに返すもの（なければ {}） */
   herdr?: (method: string, params: Record<string, unknown>) => unknown | Promise<unknown>;
   providers?: AgentProvider[];
+  /** Herdr が見分けず、こちらで見分けたエージェントのペイン（kindOf が recognized を返す） */
+  recognized?: string[];
   /** RelayDeps の一部を差しかえる（uploadDir・dirExists・slashCommands・listFiles・notify・openCodeWait は services にも効く） */
   deps?: Partial<RelayDeps>;
   /** services の一部を差しかえる（いちばん強い） */
@@ -85,7 +87,10 @@ export function fakeSession(opts: FakeSessionOptions = {}): FakeSession {
   const markedUnattended: string[] = [];
   const ownWatcher: WatcherLike = {
     current: () => ({ herdr: true, panes }),
-    kindOf: (id) => panes.find((p) => p.paneId === id)?.kind ?? null,
+    kindOf: (id) => {
+      const kind = panes.find((p) => p.paneId === id)?.kind ?? null;
+      return kind === "agent" && opts.recognized?.includes(id) ? "recognized" : kind;
+    },
     poke: () => {
       fake.pokes++;
     },

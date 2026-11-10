@@ -24,7 +24,7 @@ export function parseTranscriptLines(lines: string[]): ParsedTranscript {
       title = row.aiTitle;
       continue;
     }
-    if ((row.type !== "user" && row.type !== "assistant") || row.isMeta === true || row.isSidechain === true) continue;
+    if ((row.type !== "user" && row.type !== "assistant") || row.isMeta === true || row.isSidechain === true || isFromHarness(row)) continue;
     const uuid = typeof row.uuid === "string" ? row.uuid : String(items.length);
     const message = row.message as Rec | undefined;
     const content = message?.content;
@@ -89,7 +89,20 @@ function count(value: unknown): number {
 
 function isNoise(text: string): boolean {
   const t = text.trim();
-  return t === "" || t.startsWith("[Image: source:") || t.startsWith("<system-reminder>") || t.startsWith("<command-");
+  return (
+    t === "" ||
+    t.startsWith("[Image: source:") ||
+    t.startsWith("<system-reminder>") ||
+    t.startsWith("<command-") ||
+    t.startsWith("<local-command-stdout>") ||
+    t.startsWith("<bash-stdout>") ||
+    t.startsWith("[Request interrupted by user")
+  );
+}
+
+/** Claude Code が自分で書いた行（会話を縮めたときの要約・裏の作業の知らせ）。文面では決めない（同じ文を人が貼ることがあるので） */
+function isFromHarness(row: Rec): boolean {
+  return row.isCompactSummary === true || (row.origin as Rec | undefined)?.kind === "task-notification";
 }
 
 function describeTool(input: Rec | undefined): string {

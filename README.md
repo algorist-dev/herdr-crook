@@ -32,7 +32,7 @@ English | [日本語](README.ja.md)
 - **Usage at a glance** — context, tokens, 5‑hour and weekly limits and cost.
 - **No account, no SSH setup** — pair with a one‑time QR code. Crook connects only to your own Mac.
 
-Works with Claude Code, Codex, OpenCode and GitHub Copilot CLI, plus any terminal pane in Herdr.
+Works with Claude Code, Codex, OpenCode, GitHub Copilot CLI, Gemini CLI (with an API key), Pi and Hermes, plus any terminal pane in Herdr. Hermes notifies you only when it's waiting for approval; working and done aren't shown.
 
 ## Quick start
 
@@ -44,6 +44,16 @@ Works with Claude Code, Codex, OpenCode and GitHub Copilot CLI, plus any termina
 
 2. **Restart Herdr** (`herdr server stop`, then `herdr`). On the first start the plugin starts its local relay (a launchd agent, `jp.algorist.crook`) and adds the `prefix+m` shortcut.
 3. **Pair**: in Herdr press `prefix` then `m` (usually `ctrl+b`, `m`) and scan the QR code with the Crook app. The code works once and expires after 5 minutes.
+
+## Updating
+
+The plugin doesn't update itself. When the Crook app says the plugin on your Mac is out of date (or after a new release), run:
+
+```bash
+herdr plugin update
+```
+
+Then restart Herdr (`herdr server stop`, then `herdr`). When Herdr starts, the plugin moves its local relay to the new code. Restarting stops running agents, so do it at a good stopping point.
 
 ## Requirements
 
@@ -85,7 +95,7 @@ The Crook app is distributed on the App Store and the relay server is operated b
 | Where | What |
 |---|---|
 | **Your paired devices only** | Agent list and status, the terminal of panes you open, the conversation of agents you open, file names for `@` completion, usage numbers, your Herdr theme, and (in the QR code) your Mac's Tailscale / local addresses |
-| **Relay server** | Only end‑to‑end encrypted frames it cannot read, plus per‑Mac daily usage counters and connection counts per IP address for rate limiting. Nothing is stored |
+| **Relay server** | Only end‑to‑end encrypted frames it cannot read, the text of background notifications (not kept; see [Notifications](#notifications)), plus per‑Mac daily usage counters and connection counts per IP address for rate limiting. Nothing else is stored |
 | **Algorist** | Nothing. No accounts, analytics, ads or tracking — in the plugin and in the app |
 
 - **Pairing**: one‑time codes that expire after 5 minutes. Only hashes of device keys are stored (`~/.config/crook/devices.json`, mode 0600). The relay never listens on `0.0.0.0`.
@@ -96,7 +106,9 @@ Details: [privacy policy](https://crook.algorist.jp/privacy). To report a vulner
 
 ## Notifications
 
-While the app is open and connected, it tells you when an agent is waiting for you or has finished. Notifications while the app is in the background are planned for the next version (delivered through the relay server, without an Apple key on your Mac).
+While the app is open and connected, it tells you when an agent is waiting for you or has finished. When the app is in the background, notifications come through the Crook relay server, with no Apple key needed on your Mac. By default they arrive only when you're away from your Mac (no keyboard or mouse input for 3 minutes, or the Mac is locked); you can change this in the app.
+
+The notification text (workspace and conversation title, and the choices offered) passes through the relay server and Apple. The relay server doesn't keep it. Terminal content is not sent.
 
 ## Commands
 
@@ -149,7 +161,7 @@ More help: [crook.algorist.jp/support](https://crook.algorist.jp/support) · [op
 
 **Is Crook made by the Herdr project?** No. Crook is made by [Algorist](https://algorist.jp/) and is not affiliated with the Herdr project.
 
-**Can Algorist see my code or conversations?** No. Data goes only between your Mac and your paired devices. Through the relay server it is end‑to‑end encrypted, so the relay cannot read it.
+**Can Algorist see my code or conversations?** No. Data goes only between your Mac and your paired devices. Through the relay server it is end‑to‑end encrypted, so the relay cannot read it. The exception is the short text of background notifications (workspace and conversation title, and the choices offered), which passes through the relay server and Apple and is not kept.
 
 **Do I need Tailscale?** It's not required, but we recommend it. With Tailscale (free for personal use), Crook connects directly from anywhere with no time or data limit. Without it, Crook uses the same Wi‑Fi at home and the end‑to‑end encrypted relay server when you're away, up to 120 minutes and 200 MB per Mac per day.
 

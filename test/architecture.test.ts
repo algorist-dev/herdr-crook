@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 
 const src = fileURLToPath(new URL("../src/", import.meta.url));
 const providersRoot = join(src, "providers");
-const providerNames = new Set(["claude", "codex", "opencode", "copilot"]);
+const providerNames = new Set(["claude", "codex", "opencode", "copilot", "pi", "gemini", "hermes"]);
 
 function filesUnder(dir: string): string[] {
   const found: string[] = [];
@@ -46,7 +46,7 @@ function agentNamesIn(file: string): string[] {
   const text = withoutModuleSpecifiers(withoutComments(read(file)));
   return [...text.matchAll(literal)]
     .map((m) => m[0])
-    .filter((value) => /claude|codex|opencode|copilot/i.test(value))
+    .filter((value) => /claude|codex|opencode|copilot|gemini|hermes|\bpi\b/i.test(value))
     .filter((value) => !(file.endsWith(join("session", "session.ts")) && value === `"claude"`));
 }
 

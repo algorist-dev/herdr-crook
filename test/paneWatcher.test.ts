@@ -178,3 +178,35 @@ describe("PaneWatcher", () => {
     expect(watcher.current().panes).toEqual([]);
   });
 });
+
+describe("PaneWatcher：こちらで見分けたエージェント", () => {
+  it("Herdr が見分けず、こちらで見分けたペインは kindOf が recognized（送り方を変えるため）", async () => {
+    fake = new FakeHerdr((req) => {
+      if (req.method === "session.snapshot") {
+        return {
+          type: "session_snapshot",
+          snapshot: {
+            workspaces: [{ workspace_id: "w1", label: "api" }],
+            tabs: [{ tab_id: "w1:t1", workspace_id: "w1", label: "1" }],
+            panes: [
+              { pane_id: "w1:p1", workspace_id: "w1", tab_id: "w1:t1", agent_status: "idle" },
+              { pane_id: "w1:p2", workspace_id: "w1", tab_id: "w1:t1", agent_session: { agent: "hermes", source: "herdr:hermes", kind: "id", value: "s1" } },
+            ],
+            agents: [{ pane_id: "w1:p1", workspace_id: "w1", tab_id: "w1:t1", agent: "claude", agent_status: "idle" }],
+          },
+        };
+      }
+      if (req.method === "pane.process_info") return { process_info: { foreground_processes: [{ name: "hermes", argv: ["hermes"] }] } };
+      if (req.method === "pane.read") return { read: { text: "" } };
+      return undefined;
+    });
+    await fake.listen();
+    watcher = new PaneWatcher(new HerdrClient(fake.path), { pollMs: 10_000, debounceMs: 5 });
+    const states: WatchState[] = [];
+    watcher.on("change", (s: WatchState) => states.push(s));
+    watcher.start();
+    await waitFor(() => states.length > 0);
+    expect(watcher.kindOf("w1:p1")).toBe("agent");
+    expect(watcher.kindOf("w1:p2")).toBe("recognized");
+  });
+});

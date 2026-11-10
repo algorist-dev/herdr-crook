@@ -18,7 +18,8 @@ export interface Choices {
   selected: string | null;
 }
 
-const OPTION = /^(\s*)(?:([❯›>])\s*)?(\d{1,2})[.)]\s+(.+?)\s*$/;
+// 選んでいる行の印：Claude は ❯、Codex は ›、Gemini CLI は ●
+const OPTION = /^(\s*)(?:([❯›>●])\s*)?(\d{1,2})[.)]\s+(.+?)\s*$/;
 const SEPARATOR = /^[\s─━—\-=]+$/;
 // OpenCode の許可の選択肢（この並び順で、あるものだけ出す）
 const PERMISSION_LABELS = ["Allow once", "Allow always", "Reject"];

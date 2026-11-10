@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import WebSocket from "ws";
@@ -150,6 +150,9 @@ describe("中継の welcome とテーマの変更", () => {
 
       await waitFor(() => messages.some((m) => m.t === "welcome"));
       expect(messages.find((m) => m.t === "welcome")?.theme).toMatchObject({ name: "tokyo-night" });
+      // プラグインの版（package.json）も伝える。アプリが古いプラグインを見分けるため
+      const pkg = JSON.parse(readFileSync(join(import.meta.dirname, "..", "package.json"), "utf8")) as { version: string };
+      expect(messages.find((m) => m.t === "welcome")?.plugin).toBe(pkg.version);
 
       await sleep(70);
       expect(messages.filter((m) => m.t === "theme")).toHaveLength(0);

@@ -48,7 +48,7 @@ describe("PaneSummary の caps", () => {
   it("知らないエージェントは chat:false・models:false", () => {
     const list = summarize({
       panes: [{ pane_id: "w1:p1", workspace_id: "w1", cwd: "/repo/app" }],
-      agents: [{ pane_id: "w1:p1", agent: "gemini", agent_status: "idle" }],
+      agents: [{ pane_id: "w1:p1", agent: "amp", agent_status: "idle" }],
     });
     expect(list[0]?.caps).toEqual({ chat: false, models: false });
   });

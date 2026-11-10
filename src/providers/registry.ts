@@ -1,5 +1,5 @@
 import type { PaneSummary } from "../herdr/agents.ts";
-import type { AgentProvider, ChatSource, HerdrAgentRecord } from "./types.ts";
+import type { AgentProvider, AgentRecognizer, ChatSource, HerdrAgentRecord } from "./types.ts";
 
 /** エージェントの種類 → プロバイダ */
 export class ProviderRegistry {
@@ -36,6 +36,15 @@ export class ProviderRegistry {
     const own = this.get(pane.agent)?.chat;
     if (own) return own;
     return pane.chatId ? this.get("claude")?.chat ?? null : null;
+  }
+
+  /** 連携の報告の source（"herdr:…"）から、こちらで見分けるエージェント。無ければ null */
+  recognizerFor(sessionSource: string | null | undefined): { agent: string; recognizer: AgentRecognizer } | null {
+    if (!sessionSource) return null;
+    for (const p of this.byId.values()) {
+      if (p.recognize && p.recognize.sessionSource === sessionSource) return { agent: p.id, recognizer: p.recognize };
+    }
+    return null;
   }
 
   /** そのエージェントの確認なしの引数。できなければ null */

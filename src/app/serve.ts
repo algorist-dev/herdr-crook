@@ -10,7 +10,9 @@ import { openTerminal, type SpawnLike } from "../herdr/terminalSession.ts";
 import { lanAddresses } from "../net/lan.ts";
 import { detectAgents } from "../herdr/installedAgents.ts";
 import { OpenCodeStore } from "../providers/opencode/store.ts";
-import { ApnsClient, loadApnsConfig, pushPayload } from "../notify/apns.ts";
+import { ApnsClient, loadApnsConfig, pushPayload, type PushPayload } from "../notify/apns.ts";
+import { RelayPushClient } from "../notify/relayPush.ts";
+import { createPushSender } from "../notify/pushSender.ts";
 import { localize } from "../i18n/index.ts";
 import { machineHint, Notifier, Presence, type PushTarget } from "../notify/notifier.ts";
 import { parseChoices } from "../features/choices.ts";
@@ -97,7 +99,8 @@ export async function serve(): Promise<void> {
   await refreshAgents();
   setInterval(() => void refreshAgents(), 10 * 60 * 1000).unref();
 
-  // 通知：返事待ち・終わったを、裏にいる iPhone に Apple の通知で知らせる（鍵は push-setup で入れる）
+  // 通知：返事待ち・終わったを、裏にいる iPhone に Apple の通知で知らせる。
+  // Mac に鍵（push-setup）があれば直接、無ければ中継サーバーに頼む（docs/architecture/relay-push.md）
   const presence = new Presence();
   const push = pushSender();
   const notifier = new Notifier({
@@ -127,6 +130,8 @@ export async function serve(): Promise<void> {
     // エージェントごとの違いは、watcher と同じプロバイダを使う
     providers,
     pushReady: () => push.ready(),
+    // 中継サーバーから送れるときだけ、部屋の名前を iPhone に教える（宛先の封に入れる）
+    pushRoom: () => (relayPushRoom ? relayPushRoom.room : undefined),
     herdr,
     isAllowedPeer: (ip: string) => tailscale.isSameUser(ip),
     machine: macName(),
@@ -142,6 +147,8 @@ export async function serve(): Promise<void> {
         target,
         pushPayload({ paneId: "", kind: "needs-input", title: "Crook", body: localize(target.lang ?? "ja", "通知を試しています") }),
       );
+      // 中継サーバーから送るのに、封をした宛先がまだ届いていない（古いアプリ・中継サーバーを切っている）
+      if (result.reason === "no sealed destination") return { ok: false, reason: "Mac にこの端末の通知の宛先がありません" };
       return result.ok
         ? { ok: true, reason: "試しの通知を送りました" }
         : { ok: false, reason: `Apple の通知に送れませんでした（${result.status ?? result.reason ?? "error"}）` };
@@ -221,7 +228,13 @@ export async function serve(): Promise<void> {
   process.on("SIGINT", () => void shutdown());
 }
 
-/** Apple の鍵があれば送る。push-setup で入れたら、中継を動かし直さなくても 1 分で使えるようにする */
+/** 中継サーバーから通知を送るときの部屋（CROOK_RELAY_SERVER=off か CROOK_RELAY_PUSH=off なら null） */
+const relayPushRoom = cloudRoom && process.env.CROOK_RELAY_PUSH !== "off" ? cloudRoom : null;
+
+/**
+ * Mac に Apple の鍵があれば直接、無ければ中継サーバーから送る。
+ * push-setup で鍵を入れたら、中継を動かし直さなくても 1 分で直接に切り替わる
+ */
 function pushSender() {
   let client: ApnsClient | null = null;
   let checkedAt = 0;
@@ -241,14 +254,14 @@ function pushSender() {
     }
     return client;
   };
+  const relay = relayPushRoom ? new RelayPushClient({ server: RELAY_SERVER, room: relayPushRoom, log }) : null;
+  const sender = createPushSender({ direct: current, relay });
   return {
-    ready: () => current() !== null,
+    ready: sender.ready,
     close: () => client?.close(),
-    async send(target: PushTarget, payload: Parameters<ApnsClient["send"]>[1]) {
-      const c = current();
-      if (!c) return { ok: false };
-      const result = await c.send(target, payload);
-      if (!result.ok) log(`push: ${result.status} ${result.reason ?? ""} (device ${target.deviceId})`);
+    async send(target: PushTarget, payload: PushPayload) {
+      const result = await sender.send(target, payload);
+      if (!result.ok) log(`push: ${result.status ?? ""} ${result.reason ?? ""} (device ${target.deviceId})`);
       return result;
     },
   };

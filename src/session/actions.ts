@@ -49,10 +49,15 @@ export const actionHandlers: HandlerTable = {
     // 場所に空白があっても読み違えないように、`` で囲む
     const text = [msg.text.trim(), paths.map((p) => `\`${p}\``).join("\n")].filter(Boolean).join("\n\n");
     ctx.announce(msg.pane);
-    if (ctx.kindOf(msg.pane) === "agent") {
+    const kind = ctx.kindOf(msg.pane);
+    if (kind === "agent") {
       await ctx.services.deps.herdr.request("agent.prompt", { target: msg.pane, text });
     } else {
-      await ctx.services.deps.herdr.request("pane.send_text", { pane_id: msg.pane, text });
+      // Herdr が見分けていないエージェント（Hermes など）とターミナルは、文字と Enter で送る。
+      // エージェントの入力欄では文中の改行で送られてしまうので、複数行は貼り付け（bracketed paste）の形で入れる
+      // （Hermes 0.23 で 2 行が入力欄に入り、送られないのを確かめた）
+      const body = kind === "recognized" && text.includes("\n") ? `\x1b[200~${text}\x1b[201~` : text;
+      await ctx.services.deps.herdr.request("pane.send_text", { pane_id: msg.pane, text: body });
       await ctx.services.deps.herdr.request("pane.send_keys", { pane_id: msg.pane, keys: ["enter"] });
     }
     ctx.poke();

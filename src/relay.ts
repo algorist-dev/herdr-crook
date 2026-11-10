@@ -21,7 +21,8 @@ export { imageExtension } from "./session/uploads.ts";
 
 export interface WatcherLike {
   current(): WatchState;
-  kindOf(paneId: string): "agent" | "terminal" | null;
+  /** recognized は Herdr が見分けず、こちらで見分けたエージェント（agent.* の頼みごとは使えない） */
+  kindOf(paneId: string): "agent" | "recognized" | "terminal" | null;
   poke(): void;
   markUnattended(paneId: string): void;
   on(event: "change", fn: (s: WatchState) => void): unknown;
@@ -34,6 +35,8 @@ export interface RelayDeps {
   presence?: { add(deviceId: string): void; remove(deviceId: string): void };
   /** Mac から iPhone に通知を送れるか（Apple の鍵が入っているか） */
   pushReady?: () => boolean;
+  /** 中継サーバーから裏の通知を送れるときの部屋の名前（welcome の pushRoom） */
+  pushRoom?: () => string | undefined;
   /** 試しの APNs を送って、その端末に届くか確かめる（pushTest→pushTested。無いなら「送れませんでした」） */
   pushTest?: (deviceId: string) => Promise<{ ok: boolean; reason: string | null }>;
   watcher: WatcherLike;

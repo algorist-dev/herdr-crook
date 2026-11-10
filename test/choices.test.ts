@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { parseChoices } from "../src/features/choices.ts";
 
 describe("parseChoices（返事待ちの画面から選択肢を読む）", () => {
@@ -193,6 +195,65 @@ describe("parseChoices（返事待ちの画面から選択肢を読む）", () =
         { key: "4", label: "Type your own answer", detail: null },
       ],
       selected: null,
+    });
+  });
+});
+
+describe("Gemini CLI 0.67（実物の画面。選んでいる行の印が ●）", () => {
+  const fixture = (name: string) =>
+    readFileSync(join(import.meta.dirname, "fixtures", name), "utf8");
+
+  it("フォルダの信頼の確認：上の「Tips」の番号付きの行と取り違えない", () => {
+    expect(parseChoices(fixture("gemini-0.67-trust.txt"))).toEqual({
+      question: "Do you trust the files in this folder?",
+      options: [
+        { key: "1", label: "Trust folder (proj)", detail: null },
+        { key: "2", label: "Trust parent folder (agents)", detail: null },
+        { key: "3", label: "Don't trust", detail: null },
+      ],
+      selected: "1",
+    });
+  });
+
+  it("ログインの方法の選択", () => {
+    expect(parseChoices(fixture("gemini-0.67-auth.txt"))).toEqual({
+      question: "How would you like to authenticate for this project?",
+      options: [
+        { key: "1", label: "Sign in with Google", detail: null },
+        { key: "2", label: "Use Gemini API Key", detail: null },
+        { key: "3", label: "Vertex AI", detail: null },
+      ],
+      selected: "1",
+    });
+  });
+});
+
+describe("承認の画面（実物）", () => {
+  const fixture = (name: string) =>
+    readFileSync(join(import.meta.dirname, "fixtures", name), "utf8");
+
+  it("Gemini CLI 0.67 のシェルの承認（● 1. Allow once）", () => {
+    expect(parseChoices(fixture("gemini-0.67-approval.txt"))).toEqual({
+      question: "Allow execution of [Shell]?",
+      options: [
+        { key: "1", label: "Allow once", detail: null },
+        { key: "2", label: "Allow for this session", detail: null },
+        { key: "3", label: "No, suggest changes (esc)", detail: null },
+      ],
+      selected: "1",
+    });
+  });
+
+  it("Hermes Agent 0.23 の危ないコマンドの承認（❯ 1. Allow once）", () => {
+    expect(parseChoices(fixture("hermes-0.23-approval.txt"))).toEqual({
+      question: "rm -rf ./scratch-dir",
+      options: [
+        { key: "1", label: "Allow once", detail: null },
+        { key: "2", label: "Allow for this session", detail: null },
+        { key: "3", label: "Add to permanent allowlist", detail: null },
+        { key: "4", label: "Deny", detail: null },
+      ],
+      selected: "1",
     });
   });
 });

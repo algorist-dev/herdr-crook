@@ -43,6 +43,7 @@ export const tr: TranslationTable = {
     "そのモデルは Mac の Codex にありません": "Bu model Mac'teki Codex'te yok",
     "そのモデルは Mac の OpenCode に入っていません": "Bu model Mac'teki OpenCode'da yüklü değil",
     "このモデルではそのエフォートを選べません": "Bu model o eforu desteklemiyor",
+    "このエージェントがメッセージを打てる画面になっていません。Mac の画面を見てください": "Bu aracı mesaj almaya hazır değil. Mac'e bakın",
     "Claude がメッセージを打てる画面になっていません。Mac の画面を見てください": "Claude mesaj almaya hazır değil. Mac'e bakın",
     "Codex がメッセージを打てる画面になっていません。Mac の画面を見てください": "Codex mesaj almaya hazır değil. Mac'e bakın",
     "OpenCode がメッセージを打てる画面になっていません。Mac の画面を見てください": "OpenCode mesaj almaya hazır değil. Mac'e bakın",

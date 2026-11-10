@@ -46,6 +46,8 @@ export function jsonlChatStream(opts: JsonlChatOptions): ChatStream {
       const r = reader;
       if (!r || readerKey === null) return { chat: null };
       const more = r.read();
+      // 巻き戻しなどで出したものが消えたら、最初から読み直して入れ替える
+      if (r.needsRestart) return start(r.path, readerKey);
       return {
         chat: more.items.length > 0 ? { available: true, reset: false, title: more.title, items: more.items } : null,
         usage: usageOf(r, readerKey),
