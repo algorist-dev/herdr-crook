@@ -51,6 +51,7 @@ export const ptBR: TranslationTable = {
     "Mac の入力欄に書きかけの文章があります。送るか消してから切り替えてください": "Há texto não enviado na entrada do Mac. Envie ou apague e depois troque",
     "Claude がモデルを変えませんでした": "O Claude não trocou o modelo",
     "モデルが変わったか確かめられませんでした。Mac の画面を見てください": "Não foi possível confirmar a troca de modelo. Confira o Mac",
+    "同じ名前のモデルがほかにもあり、切り替わったか確かめられません。Mac で /model を使ってください": "Outro modelo tem o mesmo nome, então não dá para confirmar a troca. Use /model no Mac",
     "切り替わったか確かめられませんでした。Mac の画面を見てください": "Não foi possível confirmar a troca. Confira o Mac",
     "途中で画面が変わったので、やめました": "A tela mudou, então parei",
     "エフォートを切り替えられませんでした": "Não foi possível trocar o esforço",

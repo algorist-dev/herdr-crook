@@ -2,6 +2,21 @@
 
 All notable changes to this plugin are listed here. Versions follow [Semantic Versioning](https://semver.org/) (x.y.z).
 
+## [1.2.0] - 2026-11-13
+
+For the Crook for Herdr app 1.2.0.
+
+### Added
+
+- Switch Hermes models from the iPhone
+- "Update on Mac": the app can ask the Mac to run `herdr plugin update` in a new "Crook update" workspace (after you confirm), and shows why when the update can't run
+
+### Fixed
+
+- The relay server connection no longer gets stuck after a non-101 response (for example 429 or 503) until the relay restarts
+- The Mac now gives up on a relay server handshake that never answers, and reconnects when pongs stop arriving
+- Running `ensure` from a named Herdr session no longer restarts the main relay
+
 ## [1.1.0] - 2026-11-10
 
 For the Crook for Herdr app 1.1.0.

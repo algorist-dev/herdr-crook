@@ -3,6 +3,7 @@
 // そこで Herdr の Hermes の連携の報告（herdr:hermes）と前のプロセスで、こちらで見分ける（recognize）。
 // 状態（作業中・返事待ち）は分からないので、返事待ちの知らせは鳴らない（画面・サイト・ストアにそう書く）。
 import type { AgentProvider, ChatPoll, ChatSource, ChatUpdate, ForegroundProcess } from "../types.ts";
+import { createHermesModels } from "./models.ts";
 import { HermesStore } from "./store.ts";
 
 export interface HermesProviderOptions {
@@ -97,5 +98,6 @@ export function createHermesProvider(opts: HermesProviderOptions = {}): AgentPro
     unattendedArgs: ["--yolo"],
     chatKey: (record) => (record.sessionSource === SOURCE && record.sessionValue ? `${PREFIX}${record.sessionValue}` : null),
     chat,
+    models: createHermesModels(),
   };
 }

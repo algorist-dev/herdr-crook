@@ -51,6 +51,7 @@ export const tr: TranslationTable = {
     "Mac の入力欄に書きかけの文章があります。送るか消してから切り替えてください": "Mac'teki giriş alanında gönderilmemiş metin var. Gönderin ya da silin, sonra değiştirin",
     "Claude がモデルを変えませんでした": "Claude modeli değiştirmedi",
     "モデルが変わったか確かめられませんでした。Mac の画面を見てください": "Modelin değiştiği doğrulanamadı. Mac'e bakın",
+    "同じ名前のモデルがほかにもあり、切り替わったか確かめられません。Mac で /model を使ってください": "Aynı ada sahip başka bir model var, bu yüzden geçiş doğrulanamıyor. Mac'te /model kullanın",
     "切り替わったか確かめられませんでした。Mac の画面を見てください": "Geçişin olduğu doğrulanamadı. Mac'e bakın",
     "途中で画面が変わったので、やめました": "Ekran değiştiği için durduruldu",
     "エフォートを切り替えられませんでした": "Efor değiştirilemedi",

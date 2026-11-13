@@ -4,6 +4,8 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { EventEmitter } from "node:events";
+import { createServer } from "node:http";
+import { createServer as createNetServer, type Socket } from "node:net";
 import WebSocket, { WebSocketServer } from "ws";
 import { CloudTunnel, clientUrl, loadOrCreateRoom } from "../src/net/cloudRelay.ts";
 import { clientChannelForTest, keyPairFromSecret } from "../src/net/e2ee.ts";
@@ -194,5 +196,90 @@ describe("中継サーバーの今日の上限（4029）", () => {
     server.close();
     expect(connects).toBe(1);
     expect(logs.some((l) => l.includes("daily limit"))).toBe(true);
+  });
+});
+
+describe("中継サーバーの相手が思いどおりに返事をしないとき", () => {
+  const room = { room: "r".repeat(22), secret: "s".repeat(40) };
+  const relay = { attach() {} };
+
+  it("101 以外を返されても、つなぎ直しを続ける", async () => {
+    let hits = 0;
+    const http = createServer((_req, res) => {
+      hits++;
+      res.writeHead(503).end("busy");
+    });
+    await new Promise<void>((r) => http.listen(0, "127.0.0.1", r));
+    cleanup.push(() => new Promise<void>((r) => http.close(() => r())));
+    const port = (http.address() as { port: number }).port;
+    const tunnel = new CloudTunnel({ server: `ws://127.0.0.1:${port}`, room, relay, retryMs: 10 });
+    cleanup.push(() => tunnel.stop());
+    tunnel.start();
+    await waitFor(() => hits >= 3);
+    expect(hits).toBeGreaterThanOrEqual(3);
+  });
+
+  it("つなぐときに返事がないサーバーは、時間切れにしてやり直す", async () => {
+    const sockets: Socket[] = [];
+    const silent = createNetServer((s) => sockets.push(s));
+    await new Promise<void>((r) => silent.listen(0, "127.0.0.1", r));
+    cleanup.push(() => new Promise<void>((r) => {
+      for (const s of sockets) s.destroy();
+      silent.close(() => r());
+    }));
+    const port = (silent.address() as { port: number }).port;
+    const tunnel = new CloudTunnel({ server: `ws://127.0.0.1:${port}`, room, relay, retryMs: 10, handshakeTimeoutMs: 30 });
+    cleanup.push(() => tunnel.stop());
+    tunnel.start();
+    await waitFor(() => sockets.length >= 2);
+    expect(sockets.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("pong が返らなくなったら切って、つなぎ直す", async () => {
+    const wss = new WebSocketServer({ port: 0 });
+    await new Promise((r) => wss.once("listening", r));
+    cleanup.push(() => new Promise<void>((r) => { for (const c of wss.clients) c.terminate(); wss.close(() => r()); }));
+    let connections = 0;
+    wss.on("connection", () => connections++);
+    const port = (wss.address() as { port: number }).port;
+    const tunnel = new CloudTunnel({ server: `ws://127.0.0.1:${port}`, room, relay, retryMs: 10, heartbeatMs: 20, deadAfterMs: 50 });
+    cleanup.push(() => tunnel.stop());
+    tunnel.start();
+    await waitFor(() => connections >= 2);
+    expect(connections).toBeGreaterThanOrEqual(2);
+  });
+
+  it("pong が返っているあいだは切らない", async () => {
+    const wss = new WebSocketServer({ port: 0 });
+    await new Promise((r) => wss.once("listening", r));
+    cleanup.push(() => new Promise<void>((r) => { for (const c of wss.clients) c.terminate(); wss.close(() => r()); }));
+    let connections = 0;
+    wss.on("connection", (ws) => {
+      connections++;
+      ws.on("message", (d) => ws.send(d.toString() === "ping" ? "pong" : ""));
+    });
+    const port = (wss.address() as { port: number }).port;
+    const tunnel = new CloudTunnel({ server: `ws://127.0.0.1:${port}`, room, relay, retryMs: 10, heartbeatMs: 10, deadAfterMs: 60 });
+    cleanup.push(() => tunnel.stop());
+    tunnel.start();
+    await waitFor(() => tunnel.connected);
+    await new Promise((r) => setTimeout(r, 200));
+    expect(connections).toBe(1);
+    expect(tunnel.connected).toBe(true);
+  });
+
+  it("止めたあとはつなぎ直さない", async () => {
+    const wss = new WebSocketServer({ port: 0 });
+    await new Promise((r) => wss.once("listening", r));
+    cleanup.push(() => new Promise<void>((r) => wss.close(() => r())));
+    let connections = 0;
+    wss.on("connection", () => connections++);
+    const port = (wss.address() as { port: number }).port;
+    const tunnel = new CloudTunnel({ server: `ws://127.0.0.1:${port}`, room, relay, retryMs: 5 });
+    tunnel.start();
+    await waitFor(() => tunnel.connected);
+    tunnel.stop();
+    await new Promise((r) => setTimeout(r, 60));
+    expect(connections).toBe(1);
   });
 });

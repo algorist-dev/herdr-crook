@@ -51,6 +51,7 @@ export const de: TranslationTable = {
     "Mac の入力欄に書きかけの文章があります。送るか消してから切り替えてください": "Im Eingabefeld auf dem Mac steht noch Text. Sende oder lösche ihn, dann wechsle",
     "Claude がモデルを変えませんでした": "Claude hat das Modell nicht gewechselt",
     "モデルが変わったか確かめられませんでした。Mac の画面を見てください": "Modellwechsel konnte nicht geprüft werden. Sieh auf dem Mac nach",
+    "同じ名前のモデルがほかにもあり、切り替わったか確かめられません。Mac で /model を使ってください": "Ein anderes Modell hat denselben Namen, daher lässt sich der Wechsel nicht prüfen. Nutze /model auf dem Mac",
     "切り替わったか確かめられませんでした。Mac の画面を見てください": "Wechsel konnte nicht geprüft werden. Sieh auf dem Mac nach",
     "途中で画面が変わったので、やめました": "Der Bildschirm hat sich geändert, daher abgebrochen",
     "エフォートを切り替えられませんでした": "Aufwand konnte nicht gewechselt werden",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bootstrapWithRetry, buildPlist, LABEL, plistRunsCli } from "../src/app/launchd.ts";
+import { bootstrapWithRetry, buildPlist, decideEnsure, LABEL, plistRunsCli } from "../src/app/launchd.ts";
 
 describe("buildPlist", () => {
   const plist = buildPlist({
@@ -72,5 +72,36 @@ describe("launchd に入れ直す（bootout は止め終わる前に返る）", 
       ),
     ).rejects.toThrow("no");
     expect(calls).toBeGreaterThan(5);
+  });
+});
+
+describe("Herdr の起動フックで何をするか", () => {
+  const usual = { defaultSession: true, customHome: false, plistExists: true, plistCurrent: true, relayUp: true };
+
+  it("中継が今の場所で動いていれば何もしない", () => {
+    expect(decideEnsure(usual)).toBe("none");
+  });
+
+  it("更新で場所が変わったら、動いていても入れ直す", () => {
+    expect(decideEnsure({ ...usual, plistCurrent: false })).toBe("relocate");
+  });
+
+  it("試しのセッションや別の設定フォルダからは、場所が違っても入れ直さない", () => {
+    expect(decideEnsure({ ...usual, plistCurrent: false, defaultSession: false })).toBe("none");
+    expect(decideEnsure({ ...usual, plistCurrent: false, customHome: true })).toBe("none");
+  });
+
+  it("はじめて入れるのは、いつものセッションのときだけ", () => {
+    const none = { ...usual, plistExists: false, plistCurrent: false, relayUp: false };
+    expect(decideEnsure(none)).toBe("firstInstall");
+    expect(decideEnsure({ ...none, defaultSession: false })).toBe("none");
+  });
+
+  it("いつものセッションで止まっていたら、launchd に立ち上げ直させる", () => {
+    expect(decideEnsure({ ...usual, relayUp: false })).toBe("restart");
+  });
+
+  it("試しのセッションでは、中継が動いていなくても launchd に触らない", () => {
+    expect(decideEnsure({ ...usual, relayUp: false, defaultSession: false })).toBe("none");
   });
 });

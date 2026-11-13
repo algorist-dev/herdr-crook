@@ -109,6 +109,12 @@ export interface CloudTunnelOptions {
   log?: (message: string) => void;
   /** つなぎ直すまでの最初の待ち時間（テストでは短く） */
   retryMs?: number;
+  /** つなぐときに、返事を待つ長さ */
+  handshakeTimeoutMs?: number;
+  /** ping を送る間隔 */
+  heartbeatMs?: number;
+  /** この間なにも届かなければ、切れたものとしてつなぎ直す（ping を 2 回取りこぼすまでは待つ） */
+  deadAfterMs?: number;
 }
 
 export class CloudTunnel {
@@ -137,7 +143,7 @@ export class CloudTunnel {
 
   stop(): void {
     this.stopped = true;
-    if (this.heartbeat) clearInterval(this.heartbeat);
+    this.stopHeartbeat();
     this.ws?.close();
     this.dropClients();
   }
@@ -157,20 +163,43 @@ export class CloudTunnel {
     this.opts.log?.(message);
   }
 
+  private stopHeartbeat(): void {
+    if (this.heartbeat) clearInterval(this.heartbeat);
+    this.heartbeat = null;
+  }
+
   private connect(): void {
     if (this.stopped) return;
     const url = `${this.opts.server.replace(/\/+$/, "")}/h/${this.opts.room.room}`;
-    const ws = new WebSocket(url, { headers: { "x-herdr-host-secret": this.opts.room.secret }, maxPayload: 2 * 1024 * 1024 });
+    const ws = new WebSocket(url, {
+      headers: { "x-herdr-host-secret": this.opts.room.secret },
+      maxPayload: 2 * 1024 * 1024,
+      handshakeTimeout: this.opts.handshakeTimeoutMs ?? 15_000,
+    });
     this.ws = ws;
+    /** 最後に中継サーバーから何か届いた時刻 */
+    let heardAt = Date.now();
     ws.on("open", () => {
       this.connected = true;
       this.retry = this.opts.retryMs ?? 1000;
       this.log(`relay server: connected (${this.opts.server})`);
-      if (this.heartbeat) clearInterval(this.heartbeat);
-      this.heartbeat = setInterval(() => ws.readyState === WebSocket.OPEN && ws.send("ping"), 30_000);
+      heardAt = Date.now();
+      this.stopHeartbeat();
+      const deadAfter = this.opts.deadAfterMs ?? 75_000;
+      this.heartbeat = setInterval(() => {
+        if (ws.readyState !== WebSocket.OPEN) return;
+        // 片側だけ死んだ接続は close が来ないので、pong が途絶えたら自分で切る
+        if (Date.now() - heardAt > deadAfter) {
+          this.log("relay server: no reply, reconnecting");
+          ws.terminate();
+          return;
+        }
+        ws.send("ping");
+      }, this.opts.heartbeatMs ?? 30_000);
       this.heartbeat.unref?.();
     });
     ws.on("message", (data, isBinary) => {
+      heardAt = Date.now();
       const bytes = Array.isArray(data) ? Buffer.concat(data) : Buffer.from(data as ArrayBuffer);
       if (!isBinary) {
         this.control(bytes.toString("utf8"));
@@ -179,14 +208,13 @@ export class CloudTunnel {
       if (bytes.length < 5) return;
       this.clients.get(bytes.readUInt32BE(0))?.receive(bytes.subarray(4));
     });
-    ws.on("unexpected-response", (_req, res) => {
-      this.log(`relay server: refused (${res.statusCode})`);
-    });
+    // 101 以外の返事は error になる（unexpected-response を受けると ws は接続を畳まず、close が来なくなる）
     ws.on("error", (err) => this.log(`relay server: ${err.message}`));
     ws.on("close", (code) => {
       if (this.ws !== ws) return;
       this.connected = false;
       this.ws = null;
+      this.stopHeartbeat();
       this.dropClients();
       if (this.stopped) return;
       let wait = this.retry;

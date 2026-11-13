@@ -60,6 +60,29 @@ export function plistRunsCli(plist: string, cli: string): boolean {
   return plist.includes(`<string>${xml(cli)}</string>`);
 }
 
+export interface EnsureFacts {
+  /** いつものセッション（名前付きの試しのセッションではない）か */
+  defaultSession: boolean;
+  /** CROOK_HOME で別の設定フォルダを使っているか */
+  customHome: boolean;
+  plistExists: boolean;
+  /** plist が今のコードの場所を指しているか */
+  plistCurrent: boolean;
+  relayUp: boolean;
+}
+
+/**
+ * Herdr の起動フックで何をするか。
+ * relocate：herdr plugin update で場所が変わったので入れ直す／firstInstall：はじめて入れる／restart：launchd に立ち上げ直させる／none：何もしない
+ */
+export function decideEnsure(f: EnsureFacts): "relocate" | "firstInstall" | "restart" | "none" {
+  if (f.defaultSession && !f.customHome && f.plistExists && !f.plistCurrent) return "relocate";
+  if (f.relayUp) return "none";
+  if (!f.plistExists) return f.defaultSession ? "firstInstall" : "none";
+  // launchd の中継はいつものセッションのもの。試しのセッションから立ち上げ直すと、動いている中継を落としてしまう
+  return f.defaultSession ? "restart" : "none";
+}
+
 export async function install(o: PlistOptions): Promise<void> {
   mkdirSync(o.home, { recursive: true, mode: 0o700 });
   mkdirSync(join(homedir(), "Library", "LaunchAgents"), { recursive: true });

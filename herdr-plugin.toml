@@ -1,6 +1,6 @@
 id = "algorist.crook"
 name = "Crook"
-version = "1.1.0"
+version = "1.2.0"
 min_herdr_version = "0.9.0"
 description = "Watch and control your Herdr agents from iPhone and iPad with the Crook app. prefix+m shows a QR code to pair."
 platforms = ["macos"]
