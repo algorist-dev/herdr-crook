@@ -122,6 +122,8 @@ export async function serve(): Promise<void> {
     if (!state.herdr) notifier.reset();
     else void notifier.update(state.panes);
   });
+  // 返事待ちのまま時間がたったものを、もう 1 回だけ知らせる（一覧が変わらなくても見る）
+  setInterval(() => void notifier.remind(), 60 * 1000).unref();
 
   const deps = {
     store,

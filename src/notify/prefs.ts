@@ -10,6 +10,8 @@ export interface NotificationPrefs {
   quiet: { start: number; end: number; timeZone: string } | null;
   /** 知らせないワークスペース（workspaceId） */
   mutedWorkspaces: string[];
+  /** 返事待ちのままこの分数がたったら、もう 1 回だけ知らせる（null なら知らせない） */
+  remindAfterMinutes: number | null;
 }
 
 export const DEFAULT_PREFS: NotificationPrefs = {
@@ -20,6 +22,7 @@ export const DEFAULT_PREFS: NotificationPrefs = {
   suppressFocused: true,
   quiet: null,
   mutedWorkspaces: [],
+  remindAfterMinutes: null,
 };
 
 const WORKSPACE_ID = /^[A-Za-z0-9_]{1,64}$/;
@@ -56,6 +59,12 @@ export function parseNotificationPrefs(raw: unknown): NotificationPrefs | undefi
     if (!m.mutedWorkspaces.every((id) => typeof id === "string" && WORKSPACE_ID.test(id))) return undefined;
     mutedWorkspaces = m.mutedWorkspaces as string[];
   }
+  let remindAfterMinutes: number | null = null;
+  if (m.remindAfterMinutes !== undefined && m.remindAfterMinutes !== null) {
+    const v = m.remindAfterMinutes;
+    if (typeof v !== "number" || !Number.isInteger(v) || v < 1 || v > 240) return undefined;
+    remindAfterMinutes = v;
+  }
   return {
     enabled,
     onlyWhenAway,
@@ -64,6 +73,7 @@ export function parseNotificationPrefs(raw: unknown): NotificationPrefs | undefi
     suppressFocused,
     quiet,
     mutedWorkspaces,
+    remindAfterMinutes,
   };
 }
 

@@ -2,6 +2,14 @@
 
 All notable changes to this plugin are listed here. Versions follow [Semantic Versioning](https://semver.org/) (x.y.z).
 
+## [1.3.0] - 2026-11-14
+
+For the Crook for Herdr app 1.3.0.
+
+### Added
+
+- Optional reminder: if an agent is still waiting for your reply after the time you choose in the app (10 or 30 minutes), the Mac sends one more notification. Off by default. It follows the same rules as other notifications (muted workspaces, "only when away from the Mac", and devices that have the app open)
+
 ## [1.2.0] - 2026-11-13
 
 For the Crook for Herdr app 1.2.0.

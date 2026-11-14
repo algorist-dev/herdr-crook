@@ -86,16 +86,20 @@ export function attentionEvents(prev: PaneSummary[] | null, next: PaneSummary[])
     if (pane.status === "blocked" && was !== "blocked") kind = "needs-input";
     else if (pane.status === "done" && was === "working") kind = "finished";
     if (!kind) continue;
-    const what = pane.chatTitle || pane.title;
-    events.push({
-      paneId: pane.paneId,
-      kind,
-      title: `${pane.tab}:${pane.agent ?? pane.label} · ${pane.workspace}`,
-      what: what || null,
-      workspaceId: pane.workspaceId,
-    });
+    events.push(eventFor(pane, kind));
   }
   return events;
+}
+
+function eventFor(pane: PaneSummary, kind: AttentionKind): AttentionEvent {
+  const what = pane.chatTitle || pane.title;
+  return {
+    paneId: pane.paneId,
+    kind,
+    title: `${pane.tab}:${pane.agent ?? pane.label} · ${pane.workspace}`,
+    what: what || null,
+    workspaceId: pane.workspaceId,
+  };
 }
 
 /** いまアプリを開いてつながっている端末（受け口が何本かあるので、本数で数える） */
@@ -123,6 +127,8 @@ const REPEAT_MS = 5000;
 export class Notifier {
   private prev: PaneSummary[] | null = null;
   private readonly recent = new Map<string, number>();
+  /** 返事待ちのペイン：いつからか・最新の知らせ・もう一度を出し終えた端末 */
+  private readonly blocked = new Map<string, { since: number; event: AttentionEvent; reminded: Set<string> }>();
   private readonly deps: {
     targets: () => PushTarget[];
     clearToken: (token: string) => void;
@@ -145,12 +151,75 @@ export class Notifier {
   /** Herdr が止まって一覧が空になったら、次の一覧は「最初」として扱う */
   reset(): void {
     this.prev = null;
+    this.blocked.clear();
   }
 
   async update(panes: PaneSummary[]): Promise<void> {
     const events = attentionEvents(this.prev, panes);
     this.prev = panes;
     const now = (this.deps.now ?? Date.now)();
+    this.trackBlocked(panes, now);
+    await this.notifyFresh(events, now);
+    await this.remind();
+  }
+
+  /** 返事待ちのまま、端末ごとに決めた時間がたったものを、もう 1 回だけ知らせる（serve が 1 分ごとにも呼ぶ） */
+  async remind(): Promise<void> {
+    const isDue = (entry: { since: number; reminded: Set<string> }, target: PushTarget, now: number) => {
+      const after = target.prefs?.remindAfterMinutes ?? null;
+      return after !== null && !entry.reminded.has(target.deviceId) && now - entry.since >= after * 60_000;
+    };
+    const anyDue = () => {
+      const now = (this.deps.now ?? Date.now)();
+      return [...this.blocked.values()].some((entry) => this.deps.targets().some((t) => isDue(entry, t, now)));
+    };
+    if (!anyDue()) return;
+    const awayFromMac = await this.away();
+    // 待っているあいだに別の呼び出しが送ったものは、ここで印を見て送らない（印は await の後に同期で付ける）
+    const now = (this.deps.now ?? Date.now)();
+    const due: { event: AttentionEvent; targets: PushTarget[] }[] = [];
+    for (const entry of this.blocked.values()) {
+      const targets: PushTarget[] = [];
+      for (const target of this.deps.targets()) {
+        if (!isDue(entry, target, now)) continue;
+        // アプリを開いている端末は、いま見ているので送らない（閉じたあとにも送らない）
+        if (this.deps.presence.has(target.deviceId)) {
+          entry.reminded.add(target.deviceId);
+          continue;
+        }
+        // いまは送らない決まり（Mac の前にいる・黙らせたなど）なら、使い切らずに次の機会を待つ
+        const prefs = target.prefs ?? DEFAULT_PREFS;
+        if (!shouldNotify(prefs, "needs-input", entry.event.workspaceId, awayFromMac, null)) continue;
+        entry.reminded.add(target.deviceId);
+        targets.push(target);
+      }
+      if (targets.length > 0) due.push({ event: entry.event, targets });
+    }
+    await Promise.all(due.map(({ event, targets }) => this.notify(event, targets, awayFromMac)));
+  }
+
+  private trackBlocked(panes: PaneSummary[], now: number): void {
+    const still = new Set<string>();
+    for (const pane of panes) {
+      if (pane.kind !== "agent" || pane.status !== "blocked") continue;
+      still.add(pane.paneId);
+      const event = eventFor(pane, "needs-input");
+      const entry = this.blocked.get(pane.paneId);
+      if (entry) entry.event = event;
+      else this.blocked.set(pane.paneId, { since: now, event, reminded: new Set() });
+    }
+    for (const id of this.blocked.keys()) if (!still.has(id)) this.blocked.delete(id);
+  }
+
+  private async away(): Promise<boolean> {
+    try {
+      return await (this.deps.isAway ?? (() => isAway()))();
+    } catch {
+      return true;
+    }
+  }
+
+  private async notifyFresh(events: AttentionEvent[], now: number): Promise<void> {
     for (const [key, at] of this.recent) if (now - at >= REPEAT_MS) this.recent.delete(key);
     const fresh = events.filter((e) => {
       const key = `${e.paneId}|${e.kind}`;
@@ -162,29 +231,24 @@ export class Notifier {
     const targets = this.deps.targets().filter((t) => !this.deps.presence.has(t.deviceId));
     if (targets.length === 0) return;
     // Mac から離れているかは、設定も宛先も全部共通で 1 回読む（away.ts が 5 秒は覚えておく）
-    let awayFromMac: boolean;
-    try {
-      awayFromMac = await (this.deps.isAway ?? (() => isAway()))();
-    } catch {
-      awayFromMac = true;
+    const awayFromMac = await this.away();
+    await Promise.all(fresh.map((event) => this.notify(event, targets, awayFromMac)));
+  }
+
+  private async notify(event: AttentionEvent, targets: PushTarget[], awayFromMac: boolean): Promise<void> {
+    let choices: Choices | null = null;
+    if (event.kind === "needs-input" && this.deps.choicesOf) {
+      try {
+        choices = await this.deps.choicesOf(event.paneId);
+      } catch {
+        choices = null;
+      }
     }
-    await Promise.all(
-      fresh.map(async (event) => {
-        let choices: Choices | null = null;
-        if (event.kind === "needs-input" && this.deps.choicesOf) {
-          try {
-            choices = await this.deps.choicesOf(event.paneId);
-          } catch {
-            choices = null;
-          }
-        }
-        const category = replyCategory(event.kind, choices);
-        // 選択肢が読めたときの本文は、Mac の画面の言葉なので訳さない
-        const body = choices && category !== "hm.reply" ? choicesBody(choices) : null;
-        const fingerprint = choices && category !== "hm.reply" ? choicesFingerprint(choices) : null;
-        await this.sendAll(targets, event, category, body, fingerprint, awayFromMac);
-      }),
-    );
+    const category = replyCategory(event.kind, choices);
+    // 選択肢が読めたときの本文は、Mac の画面の言葉なので訳さない
+    const body = choices && category !== "hm.reply" ? choicesBody(choices) : null;
+    const fingerprint = choices && category !== "hm.reply" ? choicesFingerprint(choices) : null;
+    await this.sendAll(targets, event, category, body, fingerprint, awayFromMac);
   }
 
   private async sendAll(

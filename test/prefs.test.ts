@@ -77,6 +77,17 @@ describe("parseNotificationPrefs", () => {
     expect(parseNotificationPrefs({ enabled: false })).toEqual({ ...base, enabled: false });
   });
 
+  it("もう一度の通知（remindAfterMinutes）：既定は無し。1〜240 分の整数だけ受ける", () => {
+    expect(parseNotificationPrefs({})?.remindAfterMinutes).toBeNull();
+    expect(parseNotificationPrefs({ remindAfterMinutes: null })?.remindAfterMinutes).toBeNull();
+    expect(parseNotificationPrefs({ remindAfterMinutes: 10 })?.remindAfterMinutes).toBe(10);
+    expect(parseNotificationPrefs({ remindAfterMinutes: 30 })?.remindAfterMinutes).toBe(30);
+    expect(parseNotificationPrefs({ remindAfterMinutes: 0 })).toBeUndefined();
+    expect(parseNotificationPrefs({ remindAfterMinutes: 241 })).toBeUndefined();
+    expect(parseNotificationPrefs({ remindAfterMinutes: 1.5 })).toBeUndefined();
+    expect(parseNotificationPrefs({ remindAfterMinutes: "10" })).toBeUndefined();
+  });
+
   it("quiet の中身を確かめる（端が出ている・日をまたいでよい）", () => {
     expect(parseNotificationPrefs({ quiet: { start: 1380, end: 420, timeZone: "Asia/Tokyo" } })?.quiet).toEqual({ start: 1380, end: 420, timeZone: "Asia/Tokyo" });
     expect(parseNotificationPrefs({ quiet: { start: 1440, end: 420, timeZone: "Asia/Tokyo" } })).toBeUndefined();

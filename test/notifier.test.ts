@@ -76,6 +76,7 @@ describe("Notifier", () => {
     const cleared: string[] = [];
     const presence = new Presence();
     let now = 0;
+    let away = true;
     let result: { ok: boolean; invalidToken?: boolean } = { ok: true };
     const notifier = new Notifier({
       targets: () => targets,
@@ -85,7 +86,7 @@ describe("Notifier", () => {
         sent.push({ token: target.token, title: payload.aps.alert.title, body: payload.aps.alert.body, pane: payload.pane, sound: payload.aps.sound !== undefined, passive: payload.aps["interruption-level"] === "passive" });
         return result;
       },
-      isAway: async () => true,
+      isAway: async () => away,
       now: () => now,
     });
     return {
@@ -94,6 +95,7 @@ describe("Notifier", () => {
       sent,
       cleared,
       tick: (ms: number) => (now += ms),
+      setAway: (v: boolean) => (away = v),
       failWith: (r: typeof result) => (result = r),
     };
   }
@@ -141,6 +143,112 @@ describe("Notifier", () => {
     await t.notifier.update([pane({ status: "working" })]);
     await t.notifier.update([pane({ status: "blocked" })]);
     expect(t.sent).toHaveLength(2);
+  });
+
+  describe("もう一度の通知（返事待ちのまま時間がたったら 1 回だけ）", () => {
+    const min = 60_000;
+    const remindIn = (m: number | null) => ({ ...DEFAULT_PREFS, remindAfterMinutes: m });
+
+    it("決めた時間がたっても返事待ちなら、もう 1 回だけ同じ知らせを送る", async () => {
+      const t = setup([{ ...b, prefs: remindIn(10) }]);
+      await t.notifier.update([pane({ status: "working" })]);
+      await t.notifier.update([pane({ status: "blocked", chatTitle: "ログインを直す" })]);
+      expect(t.sent).toHaveLength(1);
+      t.tick(9 * min);
+      await t.notifier.remind();
+      expect(t.sent).toHaveLength(1);
+      t.tick(1 * min);
+      await t.notifier.remind();
+      expect(t.sent).toHaveLength(2);
+      expect(t.sent[1]!.body).toBe("返事を待っています — ログインを直す");
+      t.tick(60 * min);
+      await t.notifier.remind();
+      expect(t.sent).toHaveLength(2);
+    });
+
+    it("一覧が変わったとき（update）でも、時間がたっていれば送る", async () => {
+      const t = setup([{ ...b, prefs: remindIn(10) }]);
+      await t.notifier.update([pane({ status: "working" })]);
+      await t.notifier.update([pane({ status: "blocked" })]);
+      t.tick(11 * min);
+      await t.notifier.update([pane({ status: "blocked" }), pane({ paneId: "w1:p2", status: "working" })]);
+      expect(t.sent).toHaveLength(2);
+    });
+
+    it("時間の前に返事をしたら送らない。また返事待ちになったら数え直す", async () => {
+      const t = setup([{ ...b, prefs: remindIn(10) }]);
+      await t.notifier.update([pane({ status: "working" })]);
+      await t.notifier.update([pane({ status: "blocked" })]);
+      t.tick(5 * min);
+      await t.notifier.update([pane({ status: "working" })]);
+      t.tick(1 * min);
+      await t.notifier.update([pane({ status: "blocked" })]);
+      expect(t.sent).toHaveLength(2);
+      t.tick(9 * min);
+      await t.notifier.remind();
+      expect(t.sent).toHaveLength(2);
+      t.tick(1 * min);
+      await t.notifier.remind();
+      expect(t.sent).toHaveLength(3);
+    });
+
+    it("設定が無い（既定）端末には送らない。端末ごとの時間で送る", async () => {
+      const t = setup([{ ...a, prefs: remindIn(30) }, b]);
+      await t.notifier.update([pane({ status: "working" })]);
+      await t.notifier.update([pane({ status: "blocked" })]);
+      expect(t.sent.map((s) => s.token)).toEqual(["aa", "bb"]);
+      t.tick(29 * min);
+      await t.notifier.remind();
+      expect(t.sent).toHaveLength(2);
+      t.tick(1 * min);
+      await t.notifier.remind();
+      expect(t.sent.map((s) => s.token)).toEqual(["aa", "bb", "aa"]);
+    });
+
+    it("そのときアプリを開いている端末には送らない（見ているので、あとからも送らない）", async () => {
+      const t = setup([{ ...b, prefs: remindIn(10) }]);
+      await t.notifier.update([pane({ status: "working" })]);
+      await t.notifier.update([pane({ status: "blocked" })]);
+      t.tick(10 * min);
+      t.presence.add("d2");
+      await t.notifier.remind();
+      t.presence.remove("d2");
+      t.tick(1 * min);
+      await t.notifier.remind();
+      expect(t.sent).toHaveLength(1);
+    });
+
+    it("黙らせたワークスペースには、もう一度も送らない", async () => {
+      const t = setup([{ ...b, prefs: { ...remindIn(10), mutedWorkspaces: ["w1"] } }]);
+      await t.notifier.update([pane({ status: "working" })]);
+      await t.notifier.update([pane({ status: "blocked" })]);
+      t.tick(10 * min);
+      await t.notifier.remind();
+      expect(t.sent).toHaveLength(0);
+    });
+
+    it("時間になったとき Mac の前にいたら（離れているときだけ）、離れてから送る", async () => {
+      const t = setup([{ ...b, prefs: remindIn(10) }]);
+      await t.notifier.update([pane({ status: "working" })]);
+      await t.notifier.update([pane({ status: "blocked" })]);
+      expect(t.sent).toHaveLength(1);
+      t.setAway(false);
+      t.tick(10 * min);
+      await t.notifier.remind();
+      expect(t.sent).toHaveLength(1);
+      t.setAway(true);
+      t.tick(1 * min);
+      await t.notifier.remind();
+      expect(t.sent).toHaveLength(2);
+    });
+
+    it("最初の一覧ですでに返事待ちだったペインは、そこから数える", async () => {
+      const t = setup([{ ...b, prefs: remindIn(10) }]);
+      await t.notifier.update([pane({ status: "blocked" })]);
+      t.tick(10 * min);
+      await t.notifier.remind();
+      expect(t.sent).toHaveLength(1);
+    });
   });
 
   it("Apple に「もう使えない」と言われた宛先は消す", async () => {

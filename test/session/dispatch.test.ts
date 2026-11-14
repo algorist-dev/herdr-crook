@@ -124,7 +124,7 @@ describe("dispatch", () => {
         token,
         env: "production",
         // 無いキーは既定（parseNotificationPrefs）
-        prefs: { ...prefs, onlyWhenAway: true, onlyNeedsInput: false, sound: true, suppressFocused: true, quiet: null },
+        prefs: { ...prefs, onlyWhenAway: true, onlyNeedsInput: false, sound: true, suppressFocused: true, quiet: null, remindAfterMinutes: null },
       },
     ]);
   });
