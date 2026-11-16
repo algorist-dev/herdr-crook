@@ -11,10 +11,9 @@ import {
 } from "./models.ts";
 import type { AgentModel } from "../types.ts";
 import { findTranscript as findTranscriptIn, toolDetailFromTranscript } from "./transcript.ts";
-import { TranscriptReader } from "../shared/transcript.ts";
 import { applyClaudeStatusline } from "../../features/usage.ts";
 import { claudeBuiltinCommands, discoverClaudeCommands } from "./commands.ts";
-import { jsonlChatStream } from "../shared/jsonlChat.ts";
+import { ChatCache, jsonlChatStream } from "../shared/jsonlChat.ts";
 import type {
   AgentProvider,
   ChatSource,
@@ -37,35 +36,33 @@ export interface ClaudeProviderOptions {
   statusline?: (sessionId: string) => Record<string, unknown> | null;
 }
 
+/** 覚えておく発言の数（最初に送る 150 件の 2 倍） */
+const CHAT_KEEP = 300;
+
 export function createClaudeProvider(opts: ClaudeProviderOptions = {}): AgentProvider {
+  // 開いた会話を覚えておく（開き直すたびに長い記録を最初から読まない）
+  const chatCache = new ChatCache(64);
   const findTranscript = opts.findTranscript ?? ((sessionId: string) => findTranscriptIn(sessionId, homedir()));
   // iPhone から頼んだモデルと考える量（キーはペイン ID）
   const asked = new Map<string, { model: string; effort: string | null }>();
-  // 題名を読むための TranscriptReader（セッション ID ごと。読むたびに読み直さない）
-  const titleReaders = new Map<string, TranscriptReader>();
 
   const chat: ChatSource = {
     open(key) {
-      return jsonlChatStream({
+      return jsonlChatStream({ cache: chatCache, initialLimit: CHAT_KEEP / 2,
         key,
         resolve: findTranscript,
         mapUsage: (usage, id) => applyClaudeStatusline(usage, opts.statusline?.(id) ?? null),
       });
     },
     title(chatKey) {
-      let reader = titleReaders.get(chatKey);
-      if (!reader) {
-        const path = findTranscript(chatKey);
-        // まだ記録ができていないセッションは Map に入れず、次の読み直しでまた探す
-        if (!path) return null;
-        reader = new TranscriptReader(path);
-        titleReaders.set(chatKey, reader);
-      }
+      // 題名も同じ覚え場所から読む（一覧のために読んだ記録を、会話を開いたときにそのまま使う）
+      const path = findTranscript(chatKey);
+      if (!path) return null;
       try {
-        return reader.read().title;
+        const entry = chatCache.peekOrAdd(path, undefined, CHAT_KEEP);
+        entry.refresh();
+        return entry.title;
       } catch {
-        // 読めなくなったら、次はファイルを探し直す
-        titleReaders.delete(chatKey);
         return null;
       }
     },

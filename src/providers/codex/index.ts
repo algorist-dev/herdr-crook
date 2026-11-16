@@ -2,7 +2,7 @@ import { TranscriptReader } from "../shared/transcript.ts";
 import { codexHome, codexStatus, loadCodexModels, switchCodexModel } from "./models.ts";
 import { codexToolDetail, findCodexRollout, parseCodexLines } from "./transcript.ts";
 import { codexBuiltinCommands, discoverCodexCommands } from "./commands.ts";
-import { jsonlChatStream } from "../shared/jsonlChat.ts";
+import { ChatCache, jsonlChatStream } from "../shared/jsonlChat.ts";
 import type { AgentModel } from "../types.ts";
 import type { AgentProvider } from "../types.ts";
 
@@ -16,6 +16,8 @@ export interface CodexProviderOptions {
 }
 
 export function createCodexProvider(opts: CodexProviderOptions = {}): AgentProvider {
+  // 開いた会話を覚えておく（開き直すたびに長い記録を最初から読まない）
+  const chatCache = new ChatCache();
   const findRollout = opts.findRollout ?? ((cwd: string) => findCodexRollout(cwd, codexHome()));
   const models = opts.models ?? (() => loadCodexModels(codexHome()));
   const defaultEffort = opts.defaultEffort ?? (() => null);
@@ -29,7 +31,7 @@ export function createCodexProvider(opts: CodexProviderOptions = {}): AgentProvi
     chatKey: (_record, cwd) => (cwd ? `codex:${cwd}` : null),
     chat: {
       open(key) {
-        return jsonlChatStream({ key, resolve: pathOf, parse: parseCodexLines });
+        return jsonlChatStream({ cache: chatCache, key, resolve: pathOf, parse: parseCodexLines });
       },
       title(key) {
         let reader = titleReaders.get(key);

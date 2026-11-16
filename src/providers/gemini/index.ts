@@ -2,7 +2,7 @@
 // Herdr に Gemini の連携は無いので、作業フォルダのいちばん新しい記録を読む（gemini:<フォルダ>。Codex・Copilot と同じ）。
 // モデルの切り替えは /model set（models.ts）。「/」の候補はまだ入れない。
 import type { AgentModel, AgentProvider } from "../types.ts";
-import { jsonlChatStream } from "../shared/jsonlChat.ts";
+import { ChatCache, jsonlChatStream } from "../shared/jsonlChat.ts";
 import { TranscriptReader } from "../shared/transcript.ts";
 import { createGeminiModels } from "./models.ts";
 import { createGeminiParser, findGeminiSession, geminiHome, geminiToolDetail } from "./transcript.ts";
@@ -17,6 +17,8 @@ export interface GeminiProviderOptions {
 const PREFIX = "gemini:";
 
 export function createGeminiProvider(opts: GeminiProviderOptions = {}): AgentProvider {
+  // 開いた会話を覚えておく（開き直すたびに長い記録を最初から読まない）
+  const chatCache = new ChatCache();
   const find = opts.find ?? ((cwd: string) => findGeminiSession(cwd, geminiHome()));
   const titleReaders = new Map<string, TranscriptReader>();
   const pathOf = (key: string): string | null => (key.startsWith(PREFIX) ? find(key.slice(PREFIX.length)) : null);
@@ -28,7 +30,7 @@ export function createGeminiProvider(opts: GeminiProviderOptions = {}): AgentPro
     models: createGeminiModels(opts.models),
     chat: {
       // 読み方は記録ごとに覚えることがあるので、開くたびに作る
-      open: (key) => jsonlChatStream({ key, resolve: pathOf, parse: createGeminiParser() }),
+      open: (key) => jsonlChatStream({ cache: chatCache, key, resolve: pathOf, parse: createGeminiParser() }),
       title(key) {
         const path = pathOf(key);
         if (!path) return null;

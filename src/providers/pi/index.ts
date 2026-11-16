@@ -4,7 +4,7 @@
 import { isAbsolute } from "node:path";
 import type { AgentModel, AgentProvider } from "../types.ts";
 import { createPiModels } from "./models.ts";
-import { jsonlChatStream } from "../shared/jsonlChat.ts";
+import { ChatCache, jsonlChatStream } from "../shared/jsonlChat.ts";
 import { TranscriptReader } from "../shared/transcript.ts";
 import { findPiSession, parsePiLines, piAgentDir, piToolDetail } from "./transcript.ts";
 
@@ -18,6 +18,8 @@ export interface PiProviderOptions {
 const PREFIX = "pi:";
 
 export function createPiProvider(opts: PiProviderOptions = {}): AgentProvider {
+  // 開いた会話を覚えておく（開き直すたびに長い記録を最初から読まない）
+  const chatCache = new ChatCache();
   const agentDir = () => opts.agentDir ?? piAgentDir();
   const titleReaders = new Map<string, TranscriptReader>();
 
@@ -36,7 +38,7 @@ export function createPiProvider(opts: PiProviderOptions = {}): AgentProvider {
       return cwd ? `${PREFIX}${cwd}` : null;
     },
     chat: {
-      open: (key) => jsonlChatStream({ key, resolve: pathOf, parse: parsePiLines }),
+      open: (key) => jsonlChatStream({ cache: chatCache, key, resolve: pathOf, parse: parsePiLines }),
       title(key) {
         const path = pathOf(key);
         if (!path) return null;

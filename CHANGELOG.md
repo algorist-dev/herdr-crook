@@ -2,6 +2,13 @@
 
 All notable changes to this plugin are listed here. Versions follow [Semantic Versioning](https://semver.org/) (x.y.z).
 
+## [1.3.1] - 2026-11-16
+
+### Fixed
+
+- Opening a long conversation (Claude Code transcripts over 100 MB) no longer blocks the relay for a second or more every time. The relay now remembers each conversation it has read and only reads what was added, so reopening a chat is instant and other updates (status, notifications) are no longer delayed
+- A transcript that is rewritten and becomes shorter is now sent again from the start instead of mixing old and new messages
+
 ## [1.3.0] - 2026-11-14
 
 For the Crook for Herdr app 1.3.0.

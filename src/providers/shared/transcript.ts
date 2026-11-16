@@ -58,11 +58,13 @@ export class TranscriptReader {
   read(): Transcript {
     const size = statSync(this.path).size;
     if (size < this.offset) {
-      // 書き直された（小さくなった）ら最初から
+      // 書き直された（小さくなった）ら最初から。前に出したものは古いので、読む側にも入れ替えてもらう
       this.offset = 0;
       this.carry = "";
       this.lineCount = 0;
       this.usageState = null;
+      this.title = null;
+      this.restartWanted = true;
     }
     if (size === this.offset) return { title: this.title, items: [] };
     const fd = openSync(this.path, "r");

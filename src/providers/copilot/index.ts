@@ -1,7 +1,7 @@
 // GitHub Copilot CLI のプロバイダ。会話・題名・「/」のコマンドを、いまの copilotTranscript.ts と
 // slashCommands.ts に任せる。モデルの切り替えはまだ無いので models は付けない。
 import type { AgentProvider } from "../types.ts";
-import { jsonlChatStream } from "../shared/jsonlChat.ts";
+import { ChatCache, jsonlChatStream } from "../shared/jsonlChat.ts";
 import { copilotHome, copilotToolDetail, findCopilotSession, parseCopilotLines } from "./transcript.ts";
 import { copilotBuiltinCommands, discoverCopilotCommands } from "./commands.ts";
 
@@ -13,6 +13,8 @@ export interface CopilotProviderOptions {
 const PREFIX = "copilot:";
 
 export function createCopilotProvider(opts: CopilotProviderOptions = {}): AgentProvider {
+  // 開いた会話を覚えておく（開き直すたびに長い記録を最初から読まない）
+  const chatCache = new ChatCache();
   const find = opts.find ?? ((cwd: string) => findCopilotSession(cwd, copilotHome()));
 
   // chatId から作業フォルダを取り出して、その会話を探す。copilot: でなければ読まない
@@ -27,7 +29,7 @@ export function createCopilotProvider(opts: CopilotProviderOptions = {}): AgentP
     chatKey: (_record, cwd) => (cwd ? `${PREFIX}${cwd}` : null),
     chat: {
       open: (key) =>
-        jsonlChatStream({
+        jsonlChatStream({ cache: chatCache,
           key,
           resolve: (k) => sessionOf(k)?.path ?? null,
           parse: parseCopilotLines,
