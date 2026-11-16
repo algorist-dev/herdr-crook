@@ -42,7 +42,7 @@ const serverMessages: Record<string, ServerMessage> = {
     agents: ["claude", "codex", "opencode"],
     push: true,
     unattended: ["claude", "codex", "opencode"],
-    plugin: "1.3.1",
+    plugin: "1.3.2",
   },
   "welcome-theme": {
     t: "welcome",

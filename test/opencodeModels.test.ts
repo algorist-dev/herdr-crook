@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { currentModelOnScreen, parseModelList, parseRecent, pickerRows, pickerState, rowIndexFor, switchOpenCodeModel, switchOpenCodeVariant, variantOnScreen } from "../src/providers/opencode/models.ts";
+import { currentModelOnScreen, variantPickerState, parseModelList, parseRecent, pickerRows, pickerState, rowIndexFor, switchOpenCodeModel, switchOpenCodeVariant, variantOnScreen } from "../src/providers/opencode/models.ts";
 
 describe("OpenCode のモデル", () => {
   it("opencode models --verbose の出力を読む（提供元の表示名も付ける）", () => {
@@ -133,6 +133,44 @@ describe("switchOpenCodeModel", () => {
     const r = await switchOpenCodeModel(f.herdr, "w1:p1", target, now);
     expect(r.ok).toBe(false);
     expect(f.sent()).toEqual([["ctrl+x", "m"], "Kimi K3", ["esc"]]);
+  });
+
+  // OpenCode 1.19 は、考える量を覚えていないモデルを選ぶと「Select variant」の一覧を続けて出す（2026-11-16 に本物で見た）
+  const variants = (query: string, rows: string[]) =>
+    `                                  Select variant                                   esc\n\n                                  ${query || "Search"}\n\n${rows.map((r) => "                                  " + r).join("\n")}\n\n                      ┃\n                      ┃  Build · Kimi K3 OpenCode Go\n`;
+  const all = ["Default", "low", "medium", "high"];
+
+  it("考える量の一覧が続けて出たら、頼まれた段階で絞って決める", async () => {
+    const f = fake([status("A OpenCode"), picker("", ""), picker("Kimi K3", rows), picker("Kimi K3", rows), picker("Kimi K3", rows), variants("", all), variants("low", ["low"]), status("Kimi K3 OpenCode Go")]);
+    const r = await switchOpenCodeModel(f.herdr, "w1:p1", target, now, "low");
+    expect(r).toEqual({ ok: true, current: "Kimi K3 OpenCode Go" });
+    expect(f.sent()).toEqual([["ctrl+x", "m"], "Kimi K3", ["down"], ["enter"], "low", ["enter"]]);
+  });
+
+  it("段階を頼まれていなければ Default を選ぶ", async () => {
+    const f = fake([status("A OpenCode"), picker("", ""), picker("Kimi K3", rows), picker("Kimi K3", rows), picker("Kimi K3", rows), variants("", all), variants("Default", ["Default"]), status("Kimi K3 OpenCode Go")]);
+    const r = await switchOpenCodeModel(f.herdr, "w1:p1", target, now);
+    expect(r.ok).toBe(true);
+    expect(f.sent()).toEqual([["ctrl+x", "m"], "Kimi K3", ["down"], ["enter"], "Default", ["enter"]]);
+  });
+
+  it("頼まれた段階が一覧になければ esc で閉じ、Enter は押さない", async () => {
+    const f = fake([status("A OpenCode"), picker("", ""), picker("Kimi K3", rows), picker("Kimi K3", rows), picker("Kimi K3", rows), variants("", all), ...Array(9).fill(variants("max", [])), status("Kimi K3 OpenCode Go")]);
+    await switchOpenCodeModel(f.herdr, "w1:p1", target, now, "max");
+    expect(f.sent()).toEqual([["ctrl+x", "m"], "Kimi K3", ["down"], ["enter"], "max", ["esc"]]);
+  });
+
+  it("考える量の一覧が遅れて開いたら esc で閉じる", async () => {
+    const f = fake([status("A OpenCode"), picker("", ""), picker("Kimi K3", rows), picker("Kimi K3", rows), picker("Kimi K3", rows), status("A OpenCode"), status("A OpenCode"), status("A OpenCode"), status("A OpenCode"), status("A OpenCode"), variants("", all), status("Kimi K3 OpenCode Go")]);
+    const r = await switchOpenCodeModel(f.herdr, "w1:p1", target, now);
+    expect(r.ok).toBe(true);
+    expect(f.sent()).toEqual([["ctrl+x", "m"], "Kimi K3", ["down"], ["enter"], ["esc"]]);
+  });
+
+  it("本物の画面（絞ったあと）から考える量の一覧を読む", () => {
+    const real = readFileSync(join(import.meta.dirname, "fixtures", "opencode-variant-picker.txt"), "utf8");
+    expect(variantPickerState(real)).toEqual({ open: true, query: "low", rows: ["low"] });
+    expect(variantPickerState(status("X OpenCode")).open).toBe(false);
   });
 
   it("途中で一覧が閉じられたら Enter を押さない（名前が入力欄に入って送られないように）", async () => {

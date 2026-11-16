@@ -175,6 +175,30 @@ export function rowIndexFor(screen: string, target: { name: string; providerName
   return pickerRows(screen).findIndex((r) => r.name === target.name && r.provider === target.providerName);
 }
 
+/**
+ * 考える量の一覧（「Select variant … esc」）。OpenCode 1.19 は、考える量を覚えていないモデルを選ぶと
+ * モデルの一覧のすぐあとにこれを出す（2026-11-16 に本物で見た）。見出しの次が検索の文字、その下が段階の行
+ */
+export function variantPickerState(screen: string): { open: boolean; query: string | null; rows: string[] } {
+  const lines = screen.split("\n");
+  const head = lines.findIndex((l) => /(?:^|\s)Select variant\s{2,}esc\s*$/.test(l));
+  if (head < 0) return { open: false, query: null, rows: [] };
+  const col = Math.max(0, displayColumn(lines[head]!, lines[head]!.indexOf("Select variant")) - 2);
+  const body = lines.slice(head + 1).map((l) => fromColumn(l, col).trim());
+  let i = 0;
+  while (i < body.length && !body[i]) i++;
+  const q = body[i] ?? "";
+  const rows: string[] = [];
+  // 検索の行と一覧のあいだには空の行がある。一覧は次の空の行か入力欄の枠（┃）で終わる
+  for (i++; i < body.length && !body[i]; i++);
+  for (; i < body.length; i++) {
+    const row = body[i]!;
+    if (!row || /^[┃╹│]/.test(row) || /\s{2,}/.test(row)) break;
+    rows.push(row);
+  }
+  return { open: true, query: q === "Search" ? "" : q, rows };
+}
+
 type Herdr = { request(method: string, params: Record<string, unknown>, timeoutMs?: number): Promise<unknown> };
 
 async function readScreen(herdr: Herdr, pane: string): Promise<string> {
@@ -188,6 +212,7 @@ export async function switchOpenCodeModel(
   pane: string,
   target: { name: string; providerName: string },
   wait: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
+  variant?: string,
 ): Promise<{ ok: boolean; current: string | null; message?: string }> {
   const keys = (k: string[]) => herdr.request("pane.send_keys", { pane_id: pane, keys: k });
   const screen = () => readScreen(herdr, pane);
@@ -236,11 +261,36 @@ export async function switchOpenCodeModel(
     return cancel("途中で画面が変わったので、選ぶのをやめました");
   }
   await keys(["enter"]);
+  // 考える量の一覧が続けて出たら、頼まれた段階（なければ Default）で絞って決める。合わなければ閉じる
+  for (let attempt = 0; attempt < 4; attempt++) {
+    await wait(250);
+    if (!variantPickerState(await screen()).open) continue;
+    const label = !variant || variant === "default" ? "Default" : variant;
+    await herdr.request("pane.send_text", { pane_id: pane, text: label });
+    let picked = false;
+    for (let n = 0; n < 8 && !picked; n++) {
+      await wait(250);
+      const v = variantPickerState(await screen());
+      if (!v.open) break;
+      if (v.query === label && v.rows.length === 1 && v.rows[0] === label) {
+        await keys(["enter"]);
+        picked = true;
+      }
+    }
+    if (!picked && variantPickerState(await screen()).open) await keys(["esc"]);
+    break;
+  }
   const want = `${target.name} ${target.providerName}`;
   let current: string | null = null;
   for (let attempt = 0; attempt < 6; attempt++) {
     await wait(250);
-    current = currentModelOnScreen(await screen());
+    const now = await screen();
+    // 考える量の一覧が遅れて開いたら、開いたままにしない
+    if (variantPickerState(now).open) {
+      await keys(["esc"]);
+      continue;
+    }
+    current = currentModelOnScreen(now);
     if (current === want) return { ok: true, current };
   }
   return { ok: false, current, message: "切り替わったか確かめられませんでした。Mac の画面を見てください" };

@@ -139,7 +139,7 @@ export function createOpenCodeProvider(opts: OpenCodeProviderOptions = {}): Agen
       // 画面がすでにそのモデルなら、一覧（ctrl+x m）は開かない
       const label = currentModelOnScreen(await ctx.readScreen());
       if (label !== `${target.name} ${target.providerName}`) {
-        const r = await switchOpenCodeModel(ctx.herdr, ctx.paneId, target, ctx.wait);
+        const r = await switchOpenCodeModel(ctx.herdr, ctx.paneId, target, ctx.wait, req.variant ?? undefined);
         if (!r.ok) return { ok: false, current: null, variant: null, message: r.message ?? null };
       }
 

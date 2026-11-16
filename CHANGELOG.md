@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are listed here. Versions follow [Semantic Versioning](https://semver.org/) (x.y.z).
 
+## [1.3.2] - 2026-11-16
+
+### Fixed
+
+- Switching the OpenCode model from the app works again with OpenCode 1.19. OpenCode now asks for a variant right after you pick a model it has no saved variant for; the relay picks the variant you chose in the app (or Default) instead of leaving that list open on the Mac
+
 ## [1.3.1] - 2026-11-16
 
 ### Fixed
