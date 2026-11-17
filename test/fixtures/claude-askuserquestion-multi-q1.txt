@@ -1,0 +1,35 @@
+
+ ▐▛███▛█   Claude Code v2.1.326
+▝▜██████▀  Haiku 5.5 · Claude Max
+ ▝▝   ▝▝   ~/work
+
+
+❯ AskUserQuestion ツールを 1
+  回だけ呼んで。質問は 2 つ：1
+  つ目は「好きな果物は？」で multiSelect:
+  true、選択肢は りんご・みかん・ぶどう。2
+  つ目は「飲み物は？」で multiSelect:
+  false、選択肢は 水・お茶。答えを受けたら「了解
+  」とだけ言って終わる。ほかのツールは使わない。
+─────────────────────────────────────────────────
+←  ☐ 果物  ☐ 飲み物  ✔ Submit  →
+
+好きな果物は？
+
+❯ 1. [ ] りんご
+         りんごを選ぶ
+  2. [ ] みかん
+         みかんを選ぶ
+  3. [ ] ぶどう
+         ぶどうを選ぶ
+  4. [ ] Type something
+     Next
+─────────────────────────────────────────────────
+  5. Chat about this
+
+Enter to select · Tab/Arrow keys to navigate ·
+Esc to cancel
+
+
+
+

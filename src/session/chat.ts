@@ -76,6 +76,8 @@ export function createChatController(ctx: SessionBase, opts: { pollMs?: number }
         question: found?.question ?? null,
         options: found?.options ?? [],
         selected: found?.selected ?? null,
+        ...(found?.tabs ? { tabs: found.tabs } : {}),
+        ...(found?.multi ? { multi: found.multi } : {}),
       };
       const key = JSON.stringify(msg);
       if (key === lastChoices) return;

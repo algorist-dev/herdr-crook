@@ -11,6 +11,17 @@ export interface Choice {
   detail: string | null;
   /** 押すキーの並び（横並びの許可のように、選ぶまで移動が要るとき） */
   keys?: string[];
+  /** 複数選択の質問の選択肢なら、いま印が付いているか（ラベルの「[ ]」「[✔]」はそのまま残す。古いアプリでも読めるように） */
+  checked?: boolean;
+}
+
+/** 質問が 2 つ以上の AskUserQuestion の上の並び（← ☐ 果物  ☒ 飲み物  ✔ Submit →）の 1 つ */
+export interface ChoiceTab {
+  label: string;
+  /** 答えたか（☒） */
+  done: boolean;
+  /** 最後の「Submit」（答えを確かめて送る） */
+  submit?: true;
 }
 
 export interface Choices {
@@ -18,11 +29,19 @@ export interface Choices {
   options: Choice[];
   /** いまカーソルがある番号 */
   selected: string | null;
+  /** 質問が 2 つ以上のときの上の並び。← → で行き来する */
+  tabs?: ChoiceTab[];
+  /** 複数選択の質問（番号で印を付け外しし、→ で次へ） */
+  multi?: true;
 }
 
 // 選んでいる行の印：Claude は ❯、Codex は ›、Gemini CLI は ●
 const OPTION = /^(\s*)(?:([❯›>●])\s*)?(\d{1,2})[.)]\s+(.+?)\s*$/;
 const SEPARATOR = /^[\s─━—\-=]+$/;
+// 複数選択の印（Claude は「[ ]」と「[✔]」）
+const CHECKBOX = /^\[([ ✔✓xX×])\uFE0F?\]\s/;
+// 質問が 2 つ以上のときの上の並び
+const TAB_BAR = /^\s*←\s+(.+?)\s+→\s*$/;
 // OpenCode の許可の選択肢（この並び順で、あるものだけ出す）
 const PERMISSION_LABELS = ["Allow once", "Allow always", "Reject"];
 // 枠の線（Claude は「│ 1. Yes │」、OpenCode は「  ┃  1. A」のように頭に空白が付く）
@@ -79,7 +98,9 @@ export function parseChoices(screen: string): Choices | null {
     if (m && Number(m[3]) === expected) {
       gap = false;
       optionIndent = m[1]!.length;
-      options.push({ key: m[3]!, label: m[4]!.trim(), detail: null });
+      const label = m[4]!.trim();
+      const box = CHECKBOX.exec(label);
+      options.push(box ? { key: m[3]!, label, detail: null, checked: box[1] !== " " } : { key: m[3]!, label, detail: null });
       if (m[2]) selected = m[3]!;
       expected++;
       continue;
@@ -90,6 +111,8 @@ export function parseChoices(screen: string): Choices | null {
     }
     const indent = line.length - line.trimStart().length;
     const last = options[options.length - 1];
+    // 複数選択の「Type something」の下の「Next」「Submit」は、説明ではなく次へ進むボタン（→ と同じ）
+    if (last?.checked !== undefined && /^(?:Next|Submit)$/.test(line.trim())) continue;
     // ずっと右にある文字は枠の飾り（OpenCode の「/~」など）。説明ではない
     if (indent > optionIndent + 12) continue;
     // 選択肢より深く下げてある行は、その説明。続く行は折り返し
@@ -123,7 +146,29 @@ export function parseChoices(screen: string): Choices | null {
     }
   }
   question ??= fallback;
-  return { question, options, selected };
+  const result: Choices = { question, options, selected };
+  const tabs = parseTabs(lines, start);
+  if (tabs) result.tabs = tabs;
+  if (options.some((o) => o.checked !== undefined)) result.multi = true;
+  return result;
+}
+
+/** 選択肢より上にある「← ☐ 果物  ☒ 飲み物  ✔ Submit →」を読む（質問が 1 つなら出ない） */
+function parseTabs(lines: string[], start: number): ChoiceTab[] | undefined {
+  // 並びは区切り線のすぐ下にある。区切り線より上（前に流れた画面の残り）は見ない
+  for (let i = start - 1; i >= 0 && i >= start - 20; i--) {
+    if (SEPARATOR.test(lines[i]!) && lines[i]!.trim()) return undefined;
+    const bar = TAB_BAR.exec(lines[i]!);
+    if (!bar) continue;
+    const items = bar[1]!.split(/\s{2,}/).map((part) => /^([☐☒✔✓])\s*(.+)$/.exec(part.trim()));
+    if (items.length < 2 || items.some((m) => !m)) return undefined;
+    return items.map((m, k) => {
+      const [, mark, label] = m!;
+      if (k === items.length - 1 && (mark === "✔" || mark === "✓")) return { label: label!, done: false, submit: true as const };
+      return { label: label!, done: mark === "☒" };
+    });
+  }
+  return undefined;
 }
 
 /**
@@ -195,7 +240,10 @@ function parsePermission(lines: string[]): Choices | null {
 // 選択肢のすぐ下に出る、いま選ばせているときだけの案内（Claude Code の AskUserQuestion）。
 // 「Enter to confirm」「Esc to cancel」だけだと、Mac で人が開いた /model などの一覧まで返事待ちにして
 // iPhone に知らせてしまうので、AskUserQuestion の 2 つがそろったときだけにする
-const ASKING_FOOTER = [/Enter to select/, /↑\/↓ to navigate/];
+// 質問が 2 つ以上・複数選択のときは「Tab/Arrow keys to navigate」になる
+const ASKING_FOOTER = [/Enter\s+to\s+select/, /(?:↑\/↓|Tab\/Arrow\s+keys)\s+to\s+navigate/];
+// 質問が 2 つ以上のときの最後の確かめの画面（下の案内がない）
+const REVIEW_HEADING = /Ready to submit your answers\?/;
 
 /**
  * 画面がいま選択肢で答えを待っているか。選択肢が読めて、その下に「Enter to select」などの案内があるときだけ。
@@ -213,6 +261,9 @@ export function isAskingOnScreen(screen: string): boolean {
       break;
     }
   }
+  if (first < 0) return false;
   const below = lines.slice(first + 1).join("\n");
-  return first >= 0 && ASKING_FOOTER.every((re) => re.test(below));
+  if (ASKING_FOOTER.every((re) => re.test(below))) return true;
+  // 質問が 2 つ以上の最後の確かめの画面には下の案内がないので、上の並びと見出しの両方で見分ける
+  return parseTabs(lines, first) !== undefined && lines.slice(0, first).some((l) => REVIEW_HEADING.test(l));
 }

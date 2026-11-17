@@ -2,6 +2,16 @@
 
 All notable changes to this plugin are listed here. Versions follow [Semantic Versioning](https://semver.org/) (x.y.z).
 
+## [1.3.5] - 2026-11-17
+
+### Fixed
+
+- Claude Code questions (AskUserQuestion) with several questions or multiple selection now stay visible as choices in the app. These use a different hint line ("Tab/Arrow keys to navigate") and the last review screen ("Review your answers") has none, so the 1.3.4 check missed them and the choices could disappear while Herdr reported the pane as done
+
+### Added
+
+- For such questions the relay also sends the list of questions at the top (answered or not) and which options are ticked, so a newer app can show them. Older apps keep showing the options as before
+
 ## [1.3.4] - 2026-11-17
 
 ### Fixed

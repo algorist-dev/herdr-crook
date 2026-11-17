@@ -686,6 +686,18 @@ describe("relay", () => {
     ws.close();
   });
 
+  it("質問が 2 つ以上・複数選択なら、上の並びと印も送る", async () => {
+    paneScreen = readFileSync(join(import.meta.dirname, "fixtures", "claude-askuserquestion-multi-checked.txt"), "utf8");
+    const { ws, messages } = await pairedClient();
+    ws.send(JSON.stringify({ t: "chat", pane: "w1:p1" }));
+    await waitFor(() => messages.some((m) => m.t === "choices"));
+    const msg = messages.find((m) => m.t === "choices")!;
+    expect(msg).toMatchObject({ question: "好きな果物は？", multi: true });
+    expect((msg.tabs as unknown[]).length).toBe(3);
+    expect((msg.options as { checked?: boolean }[]).map((o) => o.checked)).toEqual([true, false, true, false, undefined]);
+    ws.close();
+  });
+
   it("ターミナルに画像を貼ると、保存した場所を文字で送り、Enter は押さない", async () => {
     const { ws } = await pairedClient();
     const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(8)]);

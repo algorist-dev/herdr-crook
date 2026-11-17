@@ -3,7 +3,7 @@
 import type { PaneSummary } from "../herdr/agents.ts";
 import type { ChatItem } from "../providers/shared/transcript.ts";
 import type { ToolDetail } from "../providers/shared/toolDetail.ts";
-import type { Choice } from "../features/choices.ts";
+import type { Choice, ChoiceTab } from "../features/choices.ts";
 import type { AgentModel } from "../providers/types.ts";
 import type { SlashCommandInfo } from "../features/slashCommands.ts";
 import type { UsageSnapshot } from "../features/usage.ts";
@@ -84,7 +84,17 @@ export type ServerMessage =
   | { t: "closed"; reason: string }
   | { t: "error"; message: string; req?: string }
   | { t: "created"; req: string; workspaceId: string; pane: string; agentStarted: boolean }
-  | { t: "choices"; pane: string; question: string | null; options: Choice[]; selected: string | null }
+  | {
+      t: "choices";
+      pane: string;
+      question: string | null;
+      options: Choice[];
+      selected: string | null;
+      /** 質問が 2 つ以上のときの上の並び（1 つなら付けない） */
+      tabs?: ChoiceTab[];
+      /** 複数選択の質問 */
+      multi?: true;
+    }
   | { t: "chat"; pane: string; available: boolean; reset: boolean; title: string | null; items: ChatItem[] }
   /** 入力欄で「/」を打ったときの一覧（Mac の組み込み＋ファイルから集めたもの） */
   | { t: "commands"; pane: string; agent: string | null; commands: SlashCommandInfo[] }

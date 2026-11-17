@@ -42,7 +42,7 @@ const serverMessages: Record<string, ServerMessage> = {
     agents: ["claude", "codex", "opencode"],
     push: true,
     unattended: ["claude", "codex", "opencode"],
-    plugin: "1.3.4",
+    plugin: "1.3.5",
   },
   "welcome-theme": {
     t: "welcome",
@@ -130,6 +130,23 @@ const serverMessages: Record<string, ServerMessage> = {
       { key: "2", label: "No", detail: "やめる", keys: ["down", "enter"] },
     ],
     selected: "1",
+  },
+  "choices-multi": {
+    t: "choices",
+    pane: "w1:p1",
+    question: "好きな果物は？",
+    options: [
+      { key: "1", label: "[✔] りんご", detail: "りんごを選ぶ", checked: true },
+      { key: "2", label: "[ ] みかん", detail: null, checked: false },
+      { key: "3", label: "Chat about this", detail: null },
+    ],
+    selected: "1",
+    tabs: [
+      { label: "果物", done: true },
+      { label: "飲み物", done: false },
+      { label: "Submit", done: false, submit: true },
+    ],
+    multi: true,
   },
   chat: {
     t: "chat",
