@@ -2,6 +2,7 @@
 // イベントは「読み直しのきっかけ」にだけ使い、中身はいつも session.snapshot から作る
 // （Herdr のドキュメントがすすめるやり方。取りこぼしがあっても一覧はずれない）。
 import { addRecognizedAgents } from "./recognize.ts";
+import { markAskingAsBlocked } from "./askingStatus.ts";
 import { EventEmitter } from "node:events";
 import { summarize, type PaneSummary } from "./agents.ts";
 import type { HerdrClient, HerdrEvent } from "./herdrClient.ts";
@@ -135,13 +136,15 @@ export class PaneWatcher extends EventEmitter {
       const result = (await this.client.request("session.snapshot", {})) as { snapshot?: object };
       const now = (this.opts.now ?? Date.now)();
       // Herdr が見分けないエージェント（連携の報告＋前のプロセス）を足す
-      const snapshot = await addRecognizedAgents(
+      const recognized = await addRecognizedAgents(
         result.snapshot ?? {},
         this.providers,
         (method, params) => this.client.request(method, params),
         this.recognized,
         now,
       );
+      // Herdr が done／idle と言っていても、画面で選択肢を出して待っていれば返事待ちにする
+      const snapshot = await markAskingAsBlocked(recognized, (method, params) => this.client.request(method, params));
       const herdrAgents = new Set(
         ((result.snapshot as { agents?: { pane_id?: unknown }[] } | undefined)?.agents ?? []).map((a) => a?.pane_id),
       );

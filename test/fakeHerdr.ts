@@ -32,7 +32,9 @@ export class FakeHerdr {
             socket.write(JSON.stringify({ id: req.id, result: { type: "subscription_started" } }) + "\n");
             continue;
           }
-          const result = this.handler(req, socket);
+          let result = this.handler(req, socket);
+          // 本物の Herdr は画面の読み取りにいつも答える（決めていなければ空の画面）
+          if (result === undefined && req.method === "pane.read") result = { read: { text: "" } };
           if (result instanceof Error) {
             socket.write(JSON.stringify({ id: req.id, error: { code: "not_found", message: result.message } }) + "\n");
           } else if (result !== undefined) {

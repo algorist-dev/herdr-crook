@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are listed here. Versions follow [Semantic Versioning](https://semver.org/) (x.y.z).
 
+## [1.3.4] - 2026-11-17
+
+### Fixed
+
+- Claude Code questions (AskUserQuestion) now stay visible as choices in the app. Herdr sometimes reports such a pane as done (or switches between done and blocked) while the question is still on screen, so the choices appeared only now and then. The relay now checks the screen of agents Herdr reports as done or idle, and treats them as waiting for a reply when a question with "Enter to select · ↑/↓ to navigate" is showing
+
 ## [1.3.3] - 2026-11-17
 
 ### Fixed

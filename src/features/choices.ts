@@ -191,3 +191,28 @@ function parsePermission(lines: string[]): Choices | null {
   const questionLine = chunk.slice(1).find((line) => line.trim() && !labels.some((label) => line.includes(label)));
   return { question: questionLine?.trim() || "許可しますか？", options, selected: "1" };
 }
+
+// 選択肢のすぐ下に出る、いま選ばせているときだけの案内（Claude Code の AskUserQuestion）。
+// 「Enter to confirm」「Esc to cancel」だけだと、Mac で人が開いた /model などの一覧まで返事待ちにして
+// iPhone に知らせてしまうので、AskUserQuestion の 2 つがそろったときだけにする
+const ASKING_FOOTER = [/Enter to select/, /↑\/↓ to navigate/];
+
+/**
+ * 画面がいま選択肢で答えを待っているか。選択肢が読めて、その下に「Enter to select」などの案内があるときだけ。
+ * Herdr が返事待ち（blocked）と done を行き来することがあるので（2026-11-17、監督のペインで見た）、
+ * done や idle のときに画面で確かめ直すのに使う。会話の中の番号付きの箇条書きだけでは待っていることにしない
+ */
+export function isAskingOnScreen(screen: string): boolean {
+  if (!parseChoices(screen)) return false;
+  const lines = screen.split("\n").map(clean);
+  let first = -1;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const m = OPTION.exec(lines[i]!);
+    if (m && m[3] === "1") {
+      first = i;
+      break;
+    }
+  }
+  const below = lines.slice(first + 1).join("\n");
+  return first >= 0 && ASKING_FOOTER.every((re) => re.test(below));
+}
