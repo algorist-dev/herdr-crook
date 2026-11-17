@@ -58,6 +58,42 @@ describe("parseChoices（返事待ちの画面から選択肢を読む）", () =
     });
   });
 
+  it("スマホの幅（49 桁）で説明と質問が折り返した AskUserQuestion（実物、2026-11-17 に選択肢が出なかった）", () => {
+    const real = readFileSync(join(import.meta.dirname, "fixtures", "claude-askuserquestion-49cols.txt"), "utf8");
+    const c = parseChoices(real);
+    expect(c?.question).toBe("写真の背景の素材。ネットには無料で使えるものが無かったので AI で作ります。どれにしますか？");
+    expect(c?.options.map((o) => [o.key, o.label])).toEqual([
+      ["1", "Geminiで作る (Recommended)"],
+      ["2", "OpenAI API"],
+      ["3", "自分で撮る"],
+      ["4", "Type something."],
+      ["5", "Chat about this"],
+    ]);
+    expect(c?.options[1]?.detail).toBe("6 枚で 200 円ほど。API の鍵と支払いの設定が要る");
+    expect(c?.options[2]?.detail).toBe("白・灰色の壁の前で背景だけの写真をあなたが数枚撮る。一番自然");
+    expect(c?.options[0]?.detail).toBe("Google AI Studio（無料の枠）。作った絵はアプリに入れて配ってよい。0 円。プロンプトはこちらで書き、Chrome で生成してから渡す（あなたの Google アカウントを使う）");
+    expect(c?.selected).toBe("1");
+  });
+
+  it("折り返しのつなぎ方：英語は空白を入れ、選択肢のあとの空の行より下の案内は説明にしない", () => {
+    const sep = "─".repeat(49);
+    const screen = [
+      sep,
+      "│ Which one?",
+      "",
+      "❯ 1. Alpha",
+      "     " + "x".repeat(38) + " abcd",
+      "     efgh",
+      "  2. Beta",
+      "     short",
+      "",
+      "        Esc to cancel · Tab to amend",
+    ].join("\n");
+    const c = parseChoices(screen);
+    expect(c?.options[0]?.detail).toBe("x".repeat(38) + " abcd efgh");
+    expect(c?.options[1]?.detail).toBe("short");
+  });
+
   it("前の会話にある番号付きの箇条書きではなく、いちばん下の選択肢を読む", () => {
     const screen = ["手順:", "1. ビルド", "2. テスト", "", "続けますか？", "› 1. はい", "  2. いいえ"].join("\n");
     expect(parseChoices(screen)?.options.map((o) => o.label)).toEqual(["はい", "いいえ"]);

@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { AgentModel } from "../types.ts";
+import { charWidth } from "../../features/textWidth.ts";
 
 export type OpenCodeModel = AgentModel;
 
@@ -96,16 +97,6 @@ export async function switchOpenCodeVariant(
     if (currentModelOnScreen(now) === null) return { ok: false, variant: null, message: "途中で画面が変わったので、やめました" };
   }
   return { ok: false, variant: variantOnScreen(now), message: "エフォートを切り替えられませんでした" };
-}
-
-/** 画面の 1 文字の幅（日本語などの全角は 2） */
-function charWidth(ch: string): number {
-  const c = ch.codePointAt(0) ?? 0;
-  return (c >= 0x1100 && c <= 0x115f) || (c >= 0x2e80 && c <= 0xa4cf) || (c >= 0xac00 && c <= 0xd7a3) ||
-    (c >= 0xf900 && c <= 0xfaff) || (c >= 0xfe30 && c <= 0xfe4f) || (c >= 0xff00 && c <= 0xff60) ||
-    (c >= 0xffe0 && c <= 0xffe6) || (c >= 0x1f300 && c <= 0x1faff) || (c >= 0x20000 && c <= 0x3fffd)
-    ? 2
-    : 1;
 }
 
 function displayColumn(line: string, index: number): number {

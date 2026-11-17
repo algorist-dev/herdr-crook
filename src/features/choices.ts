@@ -1,3 +1,5 @@
+import { charWidth, displayWidth } from "./textWidth.ts";
+
 // 返事待ちのエージェントの画面から、いま聞かれている選択肢を読む（Orca のように、番号だけでなく中身を見せるため）。
 // Claude Code の許可の確認（1. Yes / 2. … / 3. No）と AskUserQuestion の両方。いちばん下にある選択肢のまとまりを使う。
 
@@ -30,8 +32,24 @@ function clean(line: string): string {
   return line.replace(/\s+$/, "").replace(BOX, "").replace(/\s+$/, "");
 }
 
+/**
+ * 折り返した行をつなぐ。前の行が画面の端まで埋まっていれば語の途中で折れた（日本語など）のでそのまま、
+ * 端まで行かずに折れていれば空白のところで折れたので、空白を 1 つ入れる。スマホの幅（49 桁）で見ていると
+ * AskUserQuestion の説明や質問が何行にも折れる（2026-11-17）
+ */
+function joinWrapped(text: string, prevRaw: string, next: string, width: number): string {
+  const prev = prevRaw.replace(/\s+$/, "");
+  // 語の途中で折れるのは全角の字で終わるときだけ（英語は空白で折れる。全角は端の 1 桁に入らないので -1 まで見る）
+  const lastChar = [...prev].pop() ?? "";
+  const midWord = charWidth(lastChar) === 2 && displayWidth(prev) >= width - 1;
+  return midWord ? text + next : `${text} ${next}`;
+}
+
 export function parseChoices(screen: string): Choices | null {
-  const lines = screen.split("\n").map(clean);
+  const raw = screen.split("\n");
+  const lines = raw.map(clean);
+  // 画面の幅は、いちばん長い行（区切り線は端まで届く）から見積もる
+  const width = Math.max(0, ...raw.map((l) => displayWidth(l.replace(/\s+$/, ""))));
   // OpenCode の「Always allow」の確認（Confirm / Cancel）は、許可のあとにもう 1 回出る
   const confirm = parseAlwaysAllow(lines);
   if (confirm) return confirm;
@@ -53,24 +71,30 @@ export function parseChoices(screen: string): Choices | null {
   let selected: string | null = null;
   let optionIndent = -1;
   let expected = 1;
+  // 説明のあとに空の行や区切り線があったか（そのあとの下げた行は説明の続きではない。下の案内など）
+  let gap = false;
   for (let i = start; i < lines.length; i++) {
     const line = lines[i]!;
     const m = OPTION.exec(line);
     if (m && Number(m[3]) === expected) {
+      gap = false;
       optionIndent = m[1]!.length;
       options.push({ key: m[3]!, label: m[4]!.trim(), detail: null });
       if (m[2]) selected = m[3]!;
       expected++;
       continue;
     }
-    if (!line.trim() || SEPARATOR.test(line)) continue;
+    if (!line.trim() || SEPARATOR.test(line)) {
+      gap = true;
+      continue;
+    }
     const indent = line.length - line.trimStart().length;
     const last = options[options.length - 1];
     // ずっと右にある文字は枠の飾り（OpenCode の「/~」など）。説明ではない
     if (indent > optionIndent + 12) continue;
-    // 選択肢より深く下げてある行は、その説明
-    if (last && indent > optionIndent + 2 && last.detail === null) {
-      last.detail = line.trim();
+    // 選択肢より深く下げてある行は、その説明。続く行は折り返し
+    if (last && indent > optionIndent + 2 && !(gap && last.detail !== null)) {
+      last.detail = last.detail === null ? line.trim() : joinWrapped(last.detail, raw[i - 1]!, line.trim(), width);
       continue;
     }
     break;
@@ -86,6 +110,15 @@ export function parseChoices(screen: string): Choices | null {
     fallback ??= line;
     if (line.includes("?") || line.includes("？")) {
       question = line;
+      // Claude の質問は左にだけ線（│）が付く。その中で折り返した質問は、上の行からつなぐ
+      // （Gemini のように左右に線がある枠は、枠の中身ごと混ざるのでつながない）
+      const quoted = (l: string) => /^\s*│/.test(l) && !/│\s*$/.test(l);
+      let top = i;
+      while (top > 0 && quoted(raw[top]!) && quoted(raw[top - 1]!) && lines[top - 1]!.trim()) top--;
+      if (top < i) {
+        question = lines[top]!.trim();
+        for (let k = top + 1; k <= i; k++) question = joinWrapped(question, raw[k - 1]!, lines[k]!.trim(), width);
+      }
       break;
     }
   }

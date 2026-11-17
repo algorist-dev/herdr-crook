@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are listed here. Versions follow [Semantic Versioning](https://semver.org/) (x.y.z).
 
+## [1.3.3] - 2026-11-17
+
+### Fixed
+
+- Claude Code questions (AskUserQuestion) with long option descriptions now show as choices in the app again. In the phone view the pane is narrow, so descriptions and the question wrap over several lines; the relay used to stop reading after the first wrapped line and found no choices
+
 ## [1.3.2] - 2026-11-16
 
 ### Fixed
