@@ -11,6 +11,7 @@ import {
 } from "./models.ts";
 import type { AgentModel } from "../types.ts";
 import { findTranscript as findTranscriptIn, toolDetailFromTranscript } from "./transcript.ts";
+import { StandInCache, findBgStandIn, herdrPaneOf, processAlive, readClaudeSessions } from "./bgSession.ts";
 import { applyClaudeStatusline } from "../../features/usage.ts";
 import { claudeBuiltinCommands, discoverClaudeCommands } from "./commands.ts";
 import { ChatCache, jsonlChatStream } from "../shared/jsonlChat.ts";
@@ -36,13 +37,26 @@ export interface ClaudeProviderOptions {
   statusline?: (sessionId: string) => Record<string, unknown> | null;
 }
 
+/**
+ * 既定の探し方：<セッション ID>.jsonl。無くて、その ID が bg の spare なら、同じペインで動いている Claude の記録（bgSession.ts）。
+ * 作業フォルダを替えても（cd）記録は立ち上げたフォルダの下に残り続けるので、projects の下を全部見る
+ */
+function defaultFindTranscript(): (sessionId: string) => string | null {
+  const home = homedir();
+  const direct = (id: string) => findTranscriptIn(id, home);
+  const standIn = new StandInCache((id) =>
+    findBgStandIn(id, { sessions: () => readClaudeSessions(home), alive: processAlive, paneOf: herdrPaneOf, transcript: direct }),
+  );
+  return (id) => direct(id) ?? standIn.get(id);
+}
+
 /** 覚えておく発言の数（最初に送る 150 件の 2 倍） */
 const CHAT_KEEP = 300;
 
 export function createClaudeProvider(opts: ClaudeProviderOptions = {}): AgentProvider {
   // 開いた会話を覚えておく（開き直すたびに長い記録を最初から読まない）
   const chatCache = new ChatCache(64);
-  const findTranscript = opts.findTranscript ?? ((sessionId: string) => findTranscriptIn(sessionId, homedir()));
+  const findTranscript = opts.findTranscript ?? defaultFindTranscript();
   // iPhone から頼んだモデルと考える量（キーはペイン ID）
   const asked = new Map<string, { model: string; effort: string | null }>();
 

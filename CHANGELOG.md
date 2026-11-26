@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are listed here. Versions follow [Semantic Versioning](https://semver.org/) (x.y.z).
 
+## [1.3.7] - 2026-11-26
+
+### Fixed
+
+- The chat view no longer stays empty ("No conversation yet") for Claude Code running in background mode (`claude agents`). Claude starts a spare session ahead of time in the same pane, and that spare reported its own session to Herdr after the real one. The spare has no transcript yet, so the iPhone had nothing to read. When the reported session has no transcript and is a spare, the relay now reads the transcript of the live Claude session in the same Herdr pane
+
 ## [1.3.6] - 2026-11-26
 
 ### Fixed
