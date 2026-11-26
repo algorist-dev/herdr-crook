@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are listed here. Versions follow [Semantic Versioning](https://semver.org/) (x.y.z).
 
+## [1.3.6] - 2026-11-26
+
+### Fixed
+
+- iPhones connected over Tailscale no longer drop every half minute when the Mac is busy. The relay checks `tailscale status` every 15 seconds; when the check timed out it treated Tailscale as stopped and closed its Tailscale listener. It now keeps the listener when it simply could not ask, and closes it only when Tailscale reports it is not running, or after about a minute of failed checks
+
 ## [1.3.5] - 2026-11-17
 
 ### Fixed

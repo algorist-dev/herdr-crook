@@ -169,7 +169,10 @@ export async function serve(): Promise<void> {
   let tailnet: Relay | null = null;
   let tailnetIp: string | null = null;
   const bindTailnet = async () => {
-    const self = await tailscale.self();
+    const probe = await tailscale.probe();
+    // 聞けなかった（Mac が混んで時間切れなど）ときは、今の受け口をそのまま使う。閉じるのは止まっていると分かったときだけ
+    if (probe.state === "unknown") return;
+    const self = probe.state === "running" ? probe.self : null;
     if (self) deps.machine = self.hostName;
     const ip = self?.ipv4 ?? null;
     if (ip === tailnetIp) return;
