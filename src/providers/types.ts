@@ -144,6 +144,11 @@ export interface AgentProvider {
   readonly recognize?: AgentRecognizer;
   /** 「確認なし」で立ち上げるときにエージェントに付ける引数。できないエージェントは書かない */
   readonly unattendedArgs?: readonly string[];
+  /**
+   * agent.prompt だと Enter が落ちて文が入力欄に残ることがあるエージェントは、文字を入れてからこれだけ待って Enter を押す
+   * （Gemini CLI 0.71.1：agent.prompt では 13 回中 2 回残り、400ms 置くと 10 回とも送れた。2026-11-27）
+   */
+  readonly promptEnterDelayMs?: number;
   /** 一覧の PaneSummary.chatId。会話を読めないなら null */
   chatKey(record: HerdrAgentRecord, cwd: string | null): string | null;
   chat?: ChatSource;

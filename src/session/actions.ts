@@ -50,14 +50,17 @@ export const actionHandlers: HandlerTable = {
     const text = [msg.text.trim(), paths.map((p) => `\`${p}\``).join("\n")].filter(Boolean).join("\n\n");
     ctx.announce(msg.pane);
     const kind = ctx.kindOf(msg.pane);
-    if (kind === "agent") {
+    // agent.prompt だと Enter が落ちることがあるエージェント（Gemini）は、文字を入れて少し待ってから Enter
+    const enterDelay = kind === "agent" ? ctx.services.providers.promptEnterDelayMs(ctx.pane(msg.pane)?.agent) : null;
+    if (kind === "agent" && enterDelay === null) {
       await ctx.services.deps.herdr.request("agent.prompt", { target: msg.pane, text });
     } else {
       // Herdr が見分けていないエージェント（Hermes など）とターミナルは、文字と Enter で送る。
       // エージェントの入力欄では文中の改行で送られてしまうので、複数行は貼り付け（bracketed paste）の形で入れる
       // （Hermes 0.23 で 2 行が入力欄に入り、送られないのを確かめた）
-      const body = kind === "recognized" && text.includes("\n") ? `\x1b[200~${text}\x1b[201~` : text;
+      const body = (kind === "recognized" || enterDelay !== null) && text.includes("\n") ? `\x1b[200~${text}\x1b[201~` : text;
       await ctx.services.deps.herdr.request("pane.send_text", { pane_id: msg.pane, text: body });
+      if (enterDelay !== null) await ctx.services.wait(enterDelay);
       await ctx.services.deps.herdr.request("pane.send_keys", { pane_id: msg.pane, keys: ["enter"] });
     }
     ctx.poke();

@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are listed here. Versions follow [Semantic Versioning](https://semver.org/) (x.y.z).
 
+## [1.3.8] - 2026-11-27
+
+### Fixed
+
+- Prompts sent to Gemini CLI from the iPhone no longer stay in Gemini's input box without being sent. Herdr's `agent.prompt` sometimes lost the Enter for Gemini (2 of 13 tries). The relay now types the text, waits 400 ms, then presses Enter (10 of 10 tries, including multi-line text)
+
 ## [1.3.7] - 2026-11-26
 
 ### Fixed

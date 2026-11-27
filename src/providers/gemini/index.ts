@@ -26,6 +26,7 @@ export function createGeminiProvider(opts: GeminiProviderOptions = {}): AgentPro
   return {
     id: "gemini",
     unattendedArgs: ["--yolo"],
+    promptEnterDelayMs: 400,
     chatKey: (_record, cwd) => (cwd ? `${PREFIX}${cwd}` : null),
     models: createGeminiModels(opts.models),
     chat: {

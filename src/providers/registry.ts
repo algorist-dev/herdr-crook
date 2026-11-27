@@ -47,6 +47,11 @@ export class ProviderRegistry {
     return null;
   }
 
+  /** agent.prompt を使わず、文字を入れてから待つ時間。agent.prompt でよければ null */
+  promptEnterDelayMs(agent: string | null | undefined): number | null {
+    return this.get(agent)?.promptEnterDelayMs ?? null;
+  }
+
   /** そのエージェントの確認なしの引数。できなければ null */
   unattendedArgs(agent: string | null | undefined): readonly string[] | null {
     return this.get(agent)?.unattendedArgs ?? null;

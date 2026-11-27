@@ -46,6 +46,26 @@ describe("actions：文章を送る", () => {
     ]);
   });
 
+  it("Enter が落ちやすいエージェント（Gemini）には、文字を入れて少し待ってから Enter（agent.prompt を使わない）", async () => {
+    const waits: number[] = [];
+    const f = fakeSession({
+      panes: [paneFixture({ paneId: "w1S:p1", agent: "gemini" })],
+      services: { providers: createDefaultProviders(), wait: async (ms) => void waits.push(ms) },
+    });
+    await actionHandlers.prompt!(f.ctx, { t: "prompt", pane: "w1S:p1", text: "1 行目\n2 行目" });
+    expect(f.herdrCalls).toEqual([
+      { method: "pane.send_text", params: { pane_id: "w1S:p1", text: "\x1b[200~1 行目\n2 行目\x1b[201~" } },
+      { method: "pane.send_keys", params: { pane_id: "w1S:p1", keys: ["enter"] } },
+    ]);
+    expect(waits).toEqual([400]);
+  });
+
+  it("ほかのエージェント（Claude）は agent.prompt のまま", async () => {
+    const f = fakeSession({ panes: [paneFixture({ paneId: "w1:p1", agent: "claude" })], services: { providers: createDefaultProviders() } });
+    await actionHandlers.prompt!(f.ctx, { t: "prompt", pane: "w1:p1", text: "直して" });
+    expect(f.herdrCalls).toEqual([{ method: "agent.prompt", params: { target: "w1:p1", text: "直して" } }]);
+  });
+
   it("名前を変えるときも、Herdr が見分けていないエージェントは pane.rename", async () => {
     const f = fakeSession({ panes: [paneFixture({ paneId: "w1R:p1", agent: "hermes" })], recognized: ["w1R:p1"] });
     await actionHandlers.paneAction!(f.ctx, { t: "paneAction", pane: "w1R:p1", action: "rename", label: "h" });
